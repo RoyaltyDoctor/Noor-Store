@@ -486,7 +486,7 @@ export default function Home() {
                     filteredCustomersForOrder.map(c => (
                       <button key={c.id} onClick={() => handleSelectCustomer(c.id)} className="w-full text-right p-3 bg-white border border-gray-100 rounded-xl hover:bg-purple-50 hover:border-purple-200 active:scale-95 transition-all flex justify-between items-center shadow-sm">
                         <span className="font-bold text-gray-900 text-sm">{c.name}</span>
-                        {c.phone && <span className="text-xs text-gray-500 font-mono tracking-wider dir-ltr flex items-center gap-1"><Phone className="w-3 h-3 ml-1"/> {c.phone}</span>}
+                        {c.phone && <span className="text-xs text-gray-500 font-mono tracking-wider flex items-center gap-1.5" dir="ltr"><Phone className="w-3 h-3"/> {c.phone}</span>}
                       </button>
                     ))
                   )}

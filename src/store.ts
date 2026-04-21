@@ -70,6 +70,7 @@ export const useFilterStore = create<FilterState>((set) => ({
 interface AppState {
   customers: Customer[];
   orders: Order[];
+  deletedOrders: { orderNumber: string; deletedAt: number }[];
   
   // Customer Actions
   addCustomer: (customer: Omit<Customer, 'id'>) => string;
@@ -88,6 +89,7 @@ export const useStore = create<AppState>()(
     (set, get) => ({
       customers: [],
       orders: [],
+      deletedOrders: [],
 
       addCustomer: (data) => {
         const id = uuidv4();
@@ -104,18 +106,39 @@ export const useStore = create<AppState>()(
       deleteCustomer: (id) => set((state) => ({
         customers: state.customers.filter((c) => c.id !== id),
         orders: state.orders.filter((o) => o.customerId !== id)
+        // Ignoring associated orders being deleted here for the deletedOrders tracking, 
+        // as typically deleting an order directly is what they mean. If needed we could map them.
       })),
 
       addOrder: (customerId) => {
         const id = uuidv4();
         
-        // Generate a unique 5-digit order number
         let orderNumber = '';
-        let isUnique = false;
-        while (!isUnique) {
-          orderNumber = Math.floor(10000 + Math.random() * 90000).toString();
-          if (!get().orders.some(o => o.orderNumber === orderNumber)) {
-            isUnique = true;
+        const now = Date.now();
+        const state = get();
+        
+        // 1 month in ms = 30 * 24 * 60 * 60 * 1000 = 2592000000
+        const ONE_MONTH_MS = 2592000000;
+        
+        // Find if any deleted order is older than 1 month
+        // We use state.deletedOrders which might be undefined if loaded from old persistence
+        const safeDeletedOrders = state.deletedOrders || [];
+        const reusableIndex = safeDeletedOrders.findIndex(d => now - d.deletedAt >= ONE_MONTH_MS);
+        
+        let newDeletedOrders = [...safeDeletedOrders];
+
+        if (reusableIndex !== -1) {
+          orderNumber = safeDeletedOrders[reusableIndex].orderNumber;
+          // Remove used number from the pool
+          newDeletedOrders.splice(reusableIndex, 1);
+        } else {
+          // Generate a unique 5-digit order number
+          let isUnique = false;
+          while (!isUnique) {
+            orderNumber = Math.floor(10000 + Math.random() * 90000).toString();
+            if (!state.orders.some(o => o.orderNumber === orderNumber)) {
+              isUnique = true;
+            }
           }
         }
         
@@ -131,9 +154,12 @@ export const useStore = create<AppState>()(
           dates: { created: Date.now() },
           notes: {}
         };
+        
         set((state) => ({
-          orders: [newOrder, ...state.orders]
+          orders: [newOrder, ...state.orders],
+          deletedOrders: newDeletedOrders
         }));
+        
         return id;
       },
 
@@ -141,9 +167,21 @@ export const useStore = create<AppState>()(
         orders: state.orders.map((o) => (o.id === id ? { ...o, ...data } : o))
       })),
 
-      deleteOrder: (id) => set((state) => ({
-        orders: state.orders.filter((o) => o.id !== id)
-      })),
+      deleteOrder: (id) => set((state) => {
+        const orderToDelete = state.orders.find(o => o.id === id);
+        const newDeletedOrders = state.deletedOrders || [];
+        
+        if (orderToDelete && orderToDelete.orderNumber) {
+          return {
+            orders: state.orders.filter((o) => o.id !== id),
+            deletedOrders: [...newDeletedOrders, { orderNumber: orderToDelete.orderNumber, deletedAt: Date.now() }]
+          };
+        }
+        
+        return {
+          orders: state.orders.filter((o) => o.id !== id)
+        };
+      }),
 
       updateOrderStatus: (id, status) => set((state) => ({
         orders: state.orders.map((o) => {
