@@ -5,6 +5,7 @@ import { ChevronRight, ExternalLink, Plus, Trash2, Camera, ReceiptText, CheckCir
 import { OrderStatus, STATUS_COLORS, STATUS_LABELS, Item } from '../types';
 import { v4 as uuidv4 } from 'uuid';
 import clsx from 'clsx';
+import { motion, AnimatePresence } from 'motion/react';
 
 export default function OrderDetails() {
   const { id } = useParams<{ id: string }>();
@@ -380,74 +381,83 @@ export default function OrderDetails() {
             )}
 
             {/* Existing Items */}
-            {order.items.map((item) => (
-              <div key={item.id} className={clsx("p-3 rounded-2xl border transition-all", editingItemId === item.id ? "border-purple-300 bg-purple-50" : "bg-white border-gray-100 shadow-sm")}>
-                <div className="flex gap-3 relative flex-wrap sm:flex-nowrap">
-                  
-                  {/* Image Placeholder */}
-                  <div className="w-20 h-20 bg-gray-100 rounded-xl overflow-hidden flex-shrink-0 border border-gray-200 flex items-center justify-center">
-                    {item.image ? (
-                      <img src={item.image} alt={item.name} className="w-full h-full object-cover" />
-                    ) : (
-                      <Camera className="w-6 h-6 text-gray-300" />
-                    )}
-                  </div>
-
-                  {/* Info */}
-                  <div className="flex-1 pt-1 min-w-0">
-                    <div className="flex justify-between items-start w-full mb-1">
-                        <h4 className="font-bold text-gray-900 text-sm leading-snug truncate pr-2">{item.name}</h4>
-                        {/* Actions Area inline - Subtle style */}
-                        {editingItemId !== item.id && (
-                          <div className="flex gap-1 flex-shrink-0">
-                            <button onClick={() => openEditForm(item)} className="p-1.5 text-gray-400 bg-gray-50 hover:bg-gray-100 hover:text-gray-700 rounded-md transition-colors" title="تعديل">
-                              <Edit2 className="w-3 h-3" />
+            <AnimatePresence initial={false}>
+              {order.items.map((item) => (
+                <motion.div 
+                  key={item.id} 
+                  initial={{ opacity: 0, scale: 0.95, y: -20 }}
+                  animate={{ opacity: 1, scale: 1, y: 0 }}
+                  exit={{ opacity: 0, scale: 0.95, height: 0, marginTop: 0, marginBottom: 0, overflow: 'hidden' }}
+                  transition={{ duration: 0.25, ease: "easeOut" }}
+                  className={clsx("p-3 rounded-2xl border transition-colors", editingItemId === item.id ? "border-purple-300 bg-purple-50" : "bg-white border-gray-100 shadow-sm")}
+                >
+                  <div className="flex gap-3 relative flex-wrap sm:flex-nowrap">
+                    
+                    {/* Image Placeholder */}
+                    <div className="w-20 h-20 bg-gray-100 rounded-xl overflow-hidden flex-shrink-0 border border-gray-200 flex items-center justify-center">
+                      {item.image ? (
+                        <img src={item.image} alt={item.name} className="w-full h-full object-cover" />
+                      ) : (
+                        <Camera className="w-6 h-6 text-gray-300" />
+                      )}
+                    </div>
+  
+                    {/* Info */}
+                    <div className="flex-1 pt-1 min-w-0">
+                      <div className="flex justify-between items-start w-full mb-1">
+                          <h4 className="font-bold text-gray-900 text-sm leading-snug truncate pr-2">{item.name}</h4>
+                          {/* Actions Area inline - Subtle style */}
+                          {editingItemId !== item.id && (
+                            <div className="flex gap-1 flex-shrink-0">
+                              <button onClick={() => openEditForm(item)} className="p-1.5 text-gray-400 bg-gray-50 hover:bg-gray-100 hover:text-gray-700 rounded-md transition-colors" title="تعديل">
+                                <Edit2 className="w-3 h-3" />
+                              </button>
+                              <button onClick={() => removeItem(item.id)} className="p-1.5 text-gray-400 bg-gray-50 hover:bg-gray-100 hover:text-gray-700 rounded-md transition-colors" title="حذف">
+                                <Trash2 className="w-3 h-3" />
+                              </button>
+                            </div>
+                          )}
+                      </div>
+                      
+                      <div className="mt-2 flex flex-wrap gap-1.5 text-[10px] text-gray-500">
+                        {item.size && <span className="bg-gray-50 border border-gray-100 px-1.5 py-0.5 rounded shadow-sm">م: {item.size}</span>}
+                        {item.color && <span className="bg-gray-50 border border-gray-100 px-1.5 py-0.5 rounded shadow-sm">ل: {item.color}</span>}
+                        {item.sku && (
+                          <div className="flex items-center bg-gray-50 border border-gray-100 rounded shadow-sm overflow-hidden" dir="ltr">
+                            <button 
+                               onClick={() => handleCopySku(item.sku!, item.id)} 
+                               className={clsx("px-1.5 py-0.5 transition-colors border-r border-gray-100 flex items-center justify-center h-full", copiedSkuId === item.id ? "bg-green-100 text-green-700" : "text-gray-400 hover:bg-gray-200 hover:text-gray-700")} 
+                               title="نسخ الكود"
+                            >
+                              {copiedSkuId === item.id ? <Check className="w-3 h-3" /> : <Copy className="w-3 h-3" />}
                             </button>
-                            <button onClick={() => removeItem(item.id)} className="p-1.5 text-gray-400 bg-gray-50 hover:bg-gray-100 hover:text-gray-700 rounded-md transition-colors" title="حذف">
-                              <Trash2 className="w-3 h-3" />
-                            </button>
+                            <span className="px-1.5 py-0.5 font-mono max-w-[80px] truncate">{item.sku}</span>
                           </div>
                         )}
+                      </div>
+                      <div className="mt-3 flex items-center justify-between">
+                        <div className="text-sm font-bold text-gray-900">{item.price} ر.س <span className="font-normal text-xs text-gray-500">×{item.quantity}</span></div>
+                        {item.url && (
+                          <div className="flex items-center rtl:flex-row-reverse border border-blue-100 rounded bg-blue-50/50 shadow-sm overflow-hidden text-right h-6">
+                            <button 
+                               onClick={() => handleCopyUrl(item.url!, item.id)} 
+                               className={clsx("px-2 py-1 transition-colors border-r border-blue-100 flex items-center justify-center h-full", copiedUrlId === item.id ? "bg-green-100 text-green-700" : "text-blue-400 hover:bg-blue-100 hover:text-blue-600")} 
+                               title="نسخ الرابط"
+                            >
+                              {copiedUrlId === item.id ? <Check className="w-3 h-3" /> : <Copy className="w-3 h-3" />}
+                            </button>
+                            <a href={item.url} target="_blank" rel="noreferrer" className="text-blue-600 hover:bg-blue-100/50 px-2 flex items-center gap-1 text-[10px] font-bold h-full">
+                              الرابط <ExternalLink className="w-2.5 h-2.5" />
+                            </a>
+                          </div>
+                        )}
+                      </div>
                     </div>
-                    
-                    <div className="mt-2 flex flex-wrap gap-1.5 text-[10px] text-gray-500">
-                      {item.size && <span className="bg-gray-50 border border-gray-100 px-1.5 py-0.5 rounded shadow-sm">م: {item.size}</span>}
-                      {item.color && <span className="bg-gray-50 border border-gray-100 px-1.5 py-0.5 rounded shadow-sm">ل: {item.color}</span>}
-                      {item.sku && (
-                        <div className="flex items-center bg-gray-50 border border-gray-100 rounded shadow-sm overflow-hidden" dir="ltr">
-                          <button 
-                             onClick={() => handleCopySku(item.sku!, item.id)} 
-                             className={clsx("px-1.5 py-0.5 transition-colors border-r border-gray-100 flex items-center justify-center h-full", copiedSkuId === item.id ? "bg-green-100 text-green-700" : "text-gray-400 hover:bg-gray-200 hover:text-gray-700")} 
-                             title="نسخ الكود"
-                          >
-                            {copiedSkuId === item.id ? <Check className="w-3 h-3" /> : <Copy className="w-3 h-3" />}
-                          </button>
-                          <span className="px-1.5 py-0.5 font-mono max-w-[80px] truncate">{item.sku}</span>
-                        </div>
-                      )}
-                    </div>
-                    <div className="mt-3 flex items-center justify-between">
-                      <div className="text-sm font-bold text-gray-900">{item.price} ر.س <span className="font-normal text-xs text-gray-500">×{item.quantity}</span></div>
-                      {item.url && (
-                        <div className="flex items-center rtl:flex-row-reverse border border-blue-100 rounded bg-blue-50/50 shadow-sm overflow-hidden text-right h-6">
-                          <button 
-                             onClick={() => handleCopyUrl(item.url!, item.id)} 
-                             className={clsx("px-2 py-1 transition-colors border-r border-blue-100 flex items-center justify-center h-full", copiedUrlId === item.id ? "bg-green-100 text-green-700" : "text-blue-400 hover:bg-blue-100 hover:text-blue-600")} 
-                             title="نسخ الرابط"
-                          >
-                            {copiedUrlId === item.id ? <Check className="w-3 h-3" /> : <Copy className="w-3 h-3" />}
-                          </button>
-                          <a href={item.url} target="_blank" rel="noreferrer" className="text-blue-600 hover:bg-blue-100/50 px-2 flex items-center gap-1 text-[10px] font-bold h-full">
-                            الرابط <ExternalLink className="w-2.5 h-2.5" />
-                          </a>
-                        </div>
-                      )}
-                    </div>
+  
                   </div>
-
-                </div>
-              </div>
-            ))}
+                </motion.div>
+              ))}
+            </AnimatePresence>
           </div>
         )}
 
