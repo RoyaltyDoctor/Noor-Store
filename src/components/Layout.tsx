@@ -22,7 +22,7 @@ export default function Layout() {
         </header>
 
         {/* Main Content Area */}
-        <main className="flex-1 overflow-y-auto no-scrollbar pb-20 relative">
+        <main id="main-scroll-container" className="flex-1 overflow-y-auto no-scrollbar pb-20 relative">
           <Routes>
             <Route path="/" element={<HomeRoute />} />
             <Route path="/customers" element={<CustomersRoute />} />

@@ -24,10 +24,13 @@ export default function Home() {
   const scrollRestored = React.useRef(false);
 
   useLayoutEffect(() => {
+    const container = document.getElementById('main-scroll-container');
+    if (!container) return;
+
     // Restore scroll position slightly after render to ensure content is painted
     if (!scrollRestored.current) {
       requestAnimationFrame(() => {
-         window.scrollTo(0, scrollPosition);
+         container.scrollTo(0, scrollPosition);
          scrollRestored.current = true;
       });
     }
@@ -37,15 +40,15 @@ export default function Home() {
       // Throttle state update
       if (timeoutId) clearTimeout(timeoutId);
       timeoutId = setTimeout(() => {
-         setScrollPosition(window.scrollY);
+         setScrollPosition(container.scrollTop);
       }, 100);
     };
     
     // Add scroll event listener to constantly track position in case user uses browser back button
-    window.addEventListener('scroll', handleScroll, { passive: true });
+    container.addEventListener('scroll', handleScroll, { passive: true });
     
     return () => {
-      window.removeEventListener('scroll', handleScroll);
+      container.removeEventListener('scroll', handleScroll);
       if (timeoutId) clearTimeout(timeoutId);
     };
   }, []); // Empty dependencies to mount once
