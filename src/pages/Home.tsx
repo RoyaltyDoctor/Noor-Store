@@ -1,8 +1,8 @@
-import { useState, useMemo } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useStore } from '../store';
 import { Link, useNavigate } from 'react-router-dom';
 import { Plus, Search, Filter, Phone, Package, ChevronLeft, X, UserPlus, CheckSquare, Square, Check, LayoutList } from 'lucide-react';
-import { STATUS_LABELS, STATUS_COLORS, OrderStatus } from '../types';
+import { STATUS_LABELS, STATUS_COLORS, OrderStatus, Order } from '../types';
 import clsx from 'clsx';
 import { format } from 'date-fns';
 
@@ -22,6 +22,8 @@ export default function Home() {
   const [customerSearch, setCustomerSearch] = useState('');
   const [isAddingNewCustomer, setIsAddingNewCustomer] = useState(false);
   const [newCustomerForm, setNewCustomerForm] = useState({ name: '', phone: '' });
+  
+  const [itemsModalOrder, setItemsModalOrder] = useState<Order | null>(null);
 
   const [copiedOrderId, setCopiedOrderId] = useState<string | null>(null);
 
@@ -157,10 +159,6 @@ export default function Home() {
 
             {Object.entries(STATUS_LABELS).map(([key, label]) => {
                 const isSelected = isMultiSelectMode ? selectedStatusesMult.includes(key as OrderStatus) : selectedStatus === key;
-                
-                // Extract just the text color from STATUS_COLORS (e.g. text-blue-800)
-                const statusColor = STATUS_COLORS[key as OrderStatus].match(/text-\w+-\d+/)?.[0] || 'text-gray-700';
-
                 return (
                     <button 
                        key={key} 
@@ -171,13 +169,13 @@ export default function Home() {
                        className="w-full text-right px-4 py-2 hover:bg-gray-50 text-sm flex items-center gap-3 transition-colors outline-none"
                     >
                        {isMultiSelectMode ? (
-                          isSelected ? <CheckSquare className={clsx("w-4 h-4", statusColor)} /> : <Square className="w-4 h-4 text-gray-300"/>
+                          isSelected ? <CheckSquare className="w-4 h-4 text-purple-600"/> : <Square className="w-4 h-4 text-gray-300"/>
                        ) : (
-                          <div className={clsx("w-4 h-4 rounded-full border flex items-center justify-center transition-colors", isSelected ? STATUS_COLORS[key as OrderStatus].match(/bg-\w+-\d+/)?.[0] || "bg-purple-600" : "bg-white", isSelected ? STATUS_COLORS[key as OrderStatus].match(/border-\w+-\d+/)?.[0] || "border-purple-600" : "border-gray-300")}>
+                          <div className={clsx("w-4 h-4 rounded-full border flex items-center justify-center transition-colors", isSelected ? "border-purple-600 bg-purple-600" : "border-gray-300 bg-white")}>
                              {isSelected && <div className="w-1.5 h-1.5 bg-white rounded-full" />}
                           </div>
                        )}
-                       <span className={clsx("font-bold transition-colors", statusColor)}>{label}</span>
+                       <span className={clsx("transition-colors", isSelected ? "text-purple-700 font-bold" : "text-gray-700")}>{label}</span>
                     </button>
                 )
             })}
@@ -197,9 +195,14 @@ export default function Home() {
             const itemsTotal = order.items.reduce((sum, item) => sum + (item.price * item.quantity), 0);
             const total = itemsTotal + order.serviceFee + order.shippingFee;
             const remaining = total - order.deposit;
+            const itemCount = order.items.reduce((acc, i) => acc + i.quantity, 0);
 
             return (
-              <Link key={order.id} to={`/order/${order.id}`} className="block bg-white p-4 rounded-2xl border border-gray-100 shadow-sm active:scale-[0.98] transition-transform">
+              <div 
+                key={order.id} 
+                onClick={() => navigate(`/order/${order.id}`)}
+                className="block cursor-pointer bg-white p-4 rounded-2xl border border-gray-100 shadow-sm active:scale-[0.98] transition-transform"
+              >
                 <div className="flex justify-between items-start mb-3">
                   <div>
                     <h3 className="font-bold text-gray-900">{customer?.name || 'عميل غير معروف'}</h3>
@@ -224,9 +227,12 @@ export default function Home() {
                 </div>
 
                 <div className="flex items-center gap-4 text-sm text-gray-600 mb-3 bg-gray-50 p-2 text-center rounded-xl">
-                  <div className="flex-1">
+                  <div 
+                    className="flex-1 cursor-pointer hover:bg-gray-200 rounded transition-colors py-1"
+                    onClick={(e) => { e.preventDefault(); e.stopPropagation(); setItemsModalOrder(order); }}
+                  >
                     <span className="text-gray-400 text-[10px] block font-medium">عدد القطع</span>
-                    <span className="font-bold text-gray-800">{order.items.reduce((acc, i) => acc + i.quantity, 0)}</span>
+                    <span className="font-bold text-gray-800 pointer-events-none">{itemCount}</span>
                   </div>
                   <div className="w-px h-6 bg-gray-200"></div>
                   <div className="flex-1">
@@ -236,7 +242,7 @@ export default function Home() {
                   <div className="w-px h-6 bg-gray-200"></div>
                   <div className="flex-1">
                     <span className="text-gray-400 text-[10px] block font-medium">المتبقي</span>
-                    <span className="font-bold text-red-500">{remaining > 0 ? remaining : 'خالص'}</span>
+                    <span className="font-bold text-red-500">{(total === 0 && itemCount === 0) ? 0 : (remaining > 0 ? remaining : 'خالص')}</span>
                   </div>
                 </div>
 
@@ -244,19 +250,83 @@ export default function Home() {
                   <span className="text-[10px] text-gray-400">
                     تم الإنشاء: {format(order.dates.created, 'yyyy/MM/dd')}
                   </span>
-                  <div>
+                  <div onClick={(e) => e.stopPropagation()} className="flex items-center text-[10px] text-gray-600 gap-1.5 overflow-hidden">
                     {customer?.phone && (
-                      <span className="flex items-center font-mono bg-gray-50 px-2 py-1 rounded border border-gray-100 text-[11px] text-gray-600 shadow-sm">
-                        <Phone className="w-3 h-3 ml-1" /> {customer.phone}
-                      </span>
+                      <div className="flex items-center font-mono bg-gray-50 px-1.5 py-0.5 rounded border border-gray-100 whitespace-nowrap gap-1.5 flex-shrink-0">
+                         <a href={`tel:${customer.phone.replace(/[^0-9+]/g, '')}`} className="flex items-center hover:text-blue-600 transition-colors">
+                           <Phone className="w-2.5 h-2.5 ml-1" /> {customer.phone}
+                         </a>
+                         <div className="w-px h-2.5 bg-gray-300"></div>
+                         <a 
+                           href={`https://wa.me/${customer.phone.replace(/[^0-9]/g, '')}`} 
+                           target="_blank" 
+                           rel="noreferrer" 
+                           className="hover:opacity-80 transition-opacity"
+                           title="مراسلة واتساب"
+                         >
+                           <svg viewBox="0 0 24 24" fill="currentColor" className="w-2.5 h-2.5 text-[#25D366]"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
+                         </a>
+                      </div>
                     )}
                   </div>
                 </div>
-              </Link>
+              </div>
             );
           })
         )}
       </div>
+
+      {itemsModalOrder && (
+        <div className="fixed inset-0 z-50 bg-black/40 flex flex-col justify-end sm:justify-center p-4 backdrop-blur-sm transition-opacity" onClick={() => setItemsModalOrder(null)}>
+          <div className="bg-white w-full max-w-sm sm:mx-auto rounded-3xl p-4 shadow-xl max-h-[80vh] flex flex-col animate-slide-up sm:animate-none" onClick={e => e.stopPropagation()}>
+            <div className="flex justify-between items-center mb-4 border-b pb-3 border-gray-100">
+              <h3 className="font-bold text-gray-900">
+                محتويات الطلبية
+              </h3>
+              <button onClick={() => setItemsModalOrder(null)} className="p-1.5 bg-gray-100 text-gray-500 rounded-full hover:bg-gray-200">
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+            <div className="overflow-y-auto no-scrollbar space-y-2 pb-2">
+              {itemsModalOrder.items.length === 0 ? (
+                <div className="text-center py-8 text-gray-400 text-sm">لا توجد قطع في هذه الطلبية</div>
+              ) : (
+                itemsModalOrder.items.map(item => (
+                  <div key={item.id} className="p-3 bg-gray-50 rounded-xl border border-gray-100 flex items-start gap-3">
+                    {item.image ? (
+                      <img src={item.image} alt={item.name} className="w-12 h-12 rounded-lg object-cover flex-shrink-0 border bg-white" />
+                    ) : (
+                      <div className="w-12 h-12 rounded-lg bg-gray-200 flex-shrink-0 flex items-center justify-center text-gray-400">
+                        <Package className="w-5 h-5" />
+                      </div>
+                    )}
+                    <div className="flex-1 min-w-0">
+                      <h4 className="font-bold text-gray-900 text-sm truncate">{item.name}</h4>
+                      <div className="flex flex-wrap gap-1 mt-1">
+                        {item.size && <span className="text-[10px] bg-white border px-1.5 py-0.5 rounded text-gray-600">م: {item.size}</span>}
+                        {item.color && <span className="text-[10px] bg-white border px-1.5 py-0.5 rounded text-gray-600">ل: {item.color}</span>}
+                        {item.sku && <span className="text-[10px] bg-white border px-1.5 py-0.5 rounded text-gray-600 font-mono" dir="ltr">#{item.sku}</span>}
+                      </div>
+                      <div className="mt-1.5 text-xs font-bold text-purple-700">
+                        {item.price} ر.س <span className="text-gray-400 font-normal">×{item.quantity}</span>
+                      </div>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+            <button
+               onClick={() => {
+                 navigate(`/order/${itemsModalOrder.id}`);
+                 setItemsModalOrder(null);
+               }}
+               className="mt-4 w-full bg-purple-100 text-purple-700 py-3 rounded-xl font-bold text-sm active:bg-purple-200 transition-colors"
+            >
+              عرض التفاصيل الكاملة للطلبية
+            </button>
+          </div>
+        </div>
+      )}
 
       {showNewOrderModal && (
         <div className="fixed inset-0 z-50 bg-black/40 flex items-center justify-center p-4 backdrop-blur-sm transition-opacity">

@@ -1,8 +1,9 @@
 import { Routes, Route, NavLink, useNavigate } from 'react-router-dom';
-import { Home, Users, Store } from 'lucide-react';
+import { Home, Users, Store, BarChart3 } from 'lucide-react';
 import HomeRoute from '../pages/Home';
 import CustomersRoute from '../pages/Customers';
 import OrderDetailsRoute from '../pages/OrderDetails';
+import ReportsRoute from '../pages/Reports';
 import { useStore } from '../store';
 
 export default function Layout() {
@@ -25,6 +26,7 @@ export default function Layout() {
           <Routes>
             <Route path="/" element={<HomeRoute />} />
             <Route path="/customers" element={<CustomersRoute />} />
+            <Route path="/reports" element={<ReportsRoute />} />
             <Route path="/order/:id" element={<OrderDetailsRoute />} />
           </Routes>
         </main>
@@ -53,6 +55,18 @@ export default function Layout() {
           >
             <Users className="w-6 h-6" />
             <span className="text-[10px] font-medium">العملاء</span>
+          </NavLink>
+
+          <NavLink
+            to="/reports"
+            className={({ isActive }) =>
+              `flex flex-col items-center gap-1 ${
+                isActive ? 'text-purple-600' : 'text-gray-400 hover:text-gray-600'
+              }`
+            }
+          >
+            <BarChart3 className="w-6 h-6" />
+            <span className="text-[10px] font-medium">التقارير</span>
           </NavLink>
         </nav>
 
