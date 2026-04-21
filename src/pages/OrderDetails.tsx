@@ -93,16 +93,28 @@ export default function OrderDetails() {
     }
   };
 
+  const [deleteItemConfirmId, setDeleteItemConfirmId] = useState<string | null>(null);
+  const [showDeleteOrderConfirm, setShowDeleteOrderConfirm] = useState(false);
+
   const removeItem = (itemId: string) => {
-    if(confirm('هل أنت متأكد من القطعة؟')){
-      updateOrder(order.id, { items: order.items.filter(i => i.id !== itemId) });
+    setDeleteItemConfirmId(itemId);
+  };
+
+  const confirmRemoveItem = () => {
+    if (deleteItemConfirmId && order) {
+      updateOrder(order.id, { items: order.items.filter(i => i.id !== deleteItemConfirmId) });
+      setDeleteItemConfirmId(null);
     }
   };
 
   const handleDeleteOrder = () => {
-    if(confirm('هل أنت متأكد من حذف الطلبية بالكامل؟ لا يمكن التراجع عن هذا الإجراء.')){
-      deleteOrder(order.id);
-      navigate('/');
+    setShowDeleteOrderConfirm(true);
+  };
+
+  const confirmDeleteOrder = () => {
+    if (order) {
+       deleteOrder(order.id);
+       navigate('/');
     }
   };
 
@@ -514,6 +526,59 @@ export default function OrderDetails() {
         )}
 
       </div>
+
+      {/* Item Delete Confirmation Modal */}
+      {deleteItemConfirmId && (
+        <div className="fixed inset-0 z-[60] bg-black/50 flex items-center justify-center p-4 backdrop-blur-sm">
+          <div className="bg-white rounded-3xl p-6 max-w-sm w-full shadow-2xl">
+            <h3 className="text-lg font-bold text-gray-900 mb-2 text-center">حذف القطعة</h3>
+            <p className="text-sm text-gray-500 text-center mb-6 leading-relaxed">
+              هل أنت متأكد من حذف هذه القطعة من الطلبية؟
+            </p>
+            <div className="flex gap-3">
+              <button 
+                onClick={confirmRemoveItem}
+                className="flex-1 bg-red-500 hover:bg-red-600 text-white rounded-xl py-3 font-bold transition-colors shadow-sm"
+              >
+                تأكيد الحذف
+              </button>
+              <button 
+                onClick={() => setDeleteItemConfirmId(null)}
+                className="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-xl py-3 font-bold transition-colors"
+              >
+                إلغاء
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Order Delete Confirmation Modal */}
+      {showDeleteOrderConfirm && (
+        <div className="fixed inset-0 z-[60] bg-black/50 flex items-center justify-center p-4 backdrop-blur-sm">
+          <div className="bg-white rounded-3xl p-6 max-w-sm w-full shadow-2xl">
+            <h3 className="text-lg font-bold text-gray-900 mb-2 text-center">حذف الطلبية بالكامل</h3>
+            <p className="text-sm text-gray-500 text-center mb-6 leading-relaxed">
+              هل أنت متأكد من حذف هذه الطلبية بجميع محتوياتها؟ لا يمكن التراجع عن هذا الإجراء.
+            </p>
+            <div className="flex gap-3">
+              <button 
+                onClick={confirmDeleteOrder}
+                className="flex-1 bg-red-500 hover:bg-red-600 text-white rounded-xl py-3 font-bold transition-colors shadow-sm"
+              >
+                تأكيد الحذف
+              </button>
+              <button 
+                onClick={() => setShowDeleteOrderConfirm(false)}
+                className="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-xl py-3 font-bold transition-colors"
+              >
+                إلغاء
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
     </div>
   );
 }

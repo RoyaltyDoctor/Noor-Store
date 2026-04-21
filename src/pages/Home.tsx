@@ -203,11 +203,6 @@ export default function Home() {
                 <div className="flex justify-between items-start mb-3">
                   <div>
                     <h3 className="font-bold text-gray-900">{customer?.name || 'عميل غير معروف'}</h3>
-                    {customer?.phone && (
-                      <p className="text-xs text-gray-500 flex items-center mt-1">
-                        <Phone className="w-3 h-3 ml-1" /> {customer.phone}
-                      </p>
-                    )}
                   </div>
                   <div className="flex items-center gap-2">
                     {order.orderNumber && (
@@ -249,8 +244,12 @@ export default function Home() {
                   <span className="text-[10px] text-gray-400">
                     تم الإنشاء: {format(order.dates.created, 'yyyy/MM/dd')}
                   </span>
-                  <div className="flex items-center text-purple-600 text-xs font-bold">
-                    التفاصيل <ChevronLeft className="w-3 h-3 ml-1" />
+                  <div>
+                    {customer?.phone && (
+                      <span className="flex items-center font-mono bg-gray-50 px-2 py-1 rounded border border-gray-100 text-[11px] text-gray-600 shadow-sm">
+                        <Phone className="w-3 h-3 ml-1" /> {customer.phone}
+                      </span>
+                    )}
                   </div>
                 </div>
               </Link>

@@ -49,10 +49,17 @@ export default function Customers() {
     setShowExtraDetails(!!c.address || !!c.notes);
   };
 
-  const handleDelete = (e: React.MouseEvent, id: string) => {
+  const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
+
+  const handleDeleteClick = (e: React.MouseEvent, id: string) => {
     e.stopPropagation();
-    if (confirm('حذف العميل؟ سيتم حذف طلبياته أيضاً.')) {
-      deleteCustomer(id);
+    setDeleteConfirmId(id);
+  };
+
+  const confirmDelete = () => {
+    if (deleteConfirmId) {
+      deleteCustomer(deleteConfirmId);
+      setDeleteConfirmId(null);
     }
   };
 
@@ -164,7 +171,7 @@ export default function Customers() {
                     <button onClick={(e) => handleEdit(e, c)} className="p-1.5 text-gray-400 bg-gray-50 hover:bg-gray-100 hover:text-gray-700 rounded-md transition-colors" title="تعديل">
                       <Edit2 className="w-3.5 h-3.5" />
                     </button>
-                    <button onClick={(e) => handleDelete(e, c.id)} className="p-1.5 text-gray-400 bg-gray-50 hover:bg-gray-100 hover:text-red-500 rounded-md transition-colors" title="حذف">
+                    <button onClick={(e) => handleDeleteClick(e, c.id)} className="p-1.5 text-gray-400 bg-gray-50 hover:bg-gray-100 hover:text-red-500 rounded-md transition-colors" title="حذف">
                       <Trash2 className="w-3.5 h-3.5" />
                     </button>
                   </div>
@@ -237,6 +244,32 @@ export default function Customers() {
                     )
                  })
                )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Confirmation Modal */}
+      {deleteConfirmId && (
+        <div className="fixed inset-0 z-[60] bg-black/50 flex items-center justify-center p-4 backdrop-blur-sm">
+          <div className="bg-white rounded-3xl p-6 max-w-sm w-full shadow-2xl">
+            <h3 className="text-lg font-bold text-gray-900 mb-2 text-center">تأكيد الحذف</h3>
+            <p className="text-sm text-gray-500 text-center mb-6 leading-relaxed">
+              هل أنت متأكد من حذف العميل؟ سيتم أيضاً حذف جميع الطلبيات المرتبطة به. هذا الإجراء لا يمكن التراجع عنه.
+            </p>
+            <div className="flex gap-3">
+              <button 
+                onClick={confirmDelete}
+                className="flex-1 bg-red-500 hover:bg-red-600 text-white rounded-xl py-3 font-bold transition-colors shadow-sm"
+              >
+                تأكيد الحذف
+              </button>
+              <button 
+                onClick={() => setDeleteConfirmId(null)}
+                className="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-xl py-3 font-bold transition-colors"
+              >
+                إلغاء
+              </button>
             </div>
           </div>
         </div>
