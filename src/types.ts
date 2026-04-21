@@ -21,6 +21,7 @@ export interface Customer {
   name: string;
   phone: string;
   address: string;
+  notes?: string;
 }
 
 export interface Item {
@@ -37,6 +38,7 @@ export interface Item {
 
 export interface Order {
   id: string;
+  orderNumber?: string;
   customerId: string;
   status: OrderStatus;
   items: Item[];

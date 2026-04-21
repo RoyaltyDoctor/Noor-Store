@@ -58,8 +58,20 @@ export const useStore = create<AppState>()(
 
       addOrder: (customerId) => {
         const id = uuidv4();
+        
+        // Generate a unique 5-digit order number
+        let orderNumber = '';
+        let isUnique = false;
+        while (!isUnique) {
+          orderNumber = Math.floor(10000 + Math.random() * 90000).toString();
+          if (!get().orders.some(o => o.orderNumber === orderNumber)) {
+            isUnique = true;
+          }
+        }
+        
         const newOrder: Order = {
           id,
+          orderNumber,
           customerId,
           status: 'PENDING',
           items: [],
@@ -86,9 +98,9 @@ export const useStore = create<AppState>()(
       updateOrderStatus: (id, status) => set((state) => ({
         orders: state.orders.map((o) => {
           if (o.id === id) {
-            const updates = { status };
+            const updates: Partial<Order> = { status };
             if (status === 'ORDERED' && !o.dates.ordered) {
-               updates['dates'] = { ...o.dates, ordered: Date.now() };
+               updates.dates = { ...o.dates, ordered: Date.now() };
             }
             return { ...o, ...updates };
           }

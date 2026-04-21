@@ -1,21 +1,11 @@
 import { Routes, Route, NavLink, useNavigate } from 'react-router-dom';
-import { Home, Users, Search, Plus } from 'lucide-react';
+import { Home, Users, Store } from 'lucide-react';
 import HomeRoute from '../pages/Home';
 import CustomersRoute from '../pages/Customers';
 import OrderDetailsRoute from '../pages/OrderDetails';
 import { useStore } from '../store';
 
 export default function Layout() {
-  const navigate = useNavigate();
-  const addOrder = useStore(s => s.addOrder);
-  const customers = useStore(s => s.customers);
-
-  const handleQuickAddOrder = () => {
-    // Quick add opens dialog or directly creates if we have a default customer?
-    // Let's just navigate to a "new" action or pick first customer to jump quick, then user changes.
-    // Actually, Better to just prompt or use a floating action button on Home screen instead.
-  };
-
   return (
     <div className="flex justify-center items-start min-h-screen bg-gray-200">
       <div className="w-full max-w-md bg-gray-50 flex flex-col h-screen min-h-[100dvh] relative shadow-2xl ring-1 ring-gray-900/5">
@@ -24,13 +14,10 @@ export default function Layout() {
         <header className="bg-white border-b px-4 py-3 flex items-center justify-between z-10 shadow-sm">
           <div className="flex items-center gap-2">
             <div className="w-8 h-8 rounded-full bg-purple-600 flex items-center justify-center text-white font-bold">
-              N
+              <Store className="w-4 h-4" />
             </div>
-            <h1 className="font-bold text-lg text-gray-900">وسيطة برو</h1>
+            <h1 className="font-bold text-lg text-gray-900">Noor Store</h1>
           </div>
-          <button className="p-2 text-gray-500 hover:bg-gray-100 rounded-full transition-colors">
-            <Search className="w-5 h-5" />
-          </button>
         </header>
 
         {/* Main Content Area */}
