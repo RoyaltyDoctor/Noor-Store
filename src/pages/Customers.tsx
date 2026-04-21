@@ -1,6 +1,6 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { useStore } from '../store';
-import { Link } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import { Users, Phone, MapPin, Plus, Edit2, Trash2, Search, Package, ChevronLeft, ChevronDown, X, FileText } from 'lucide-react';
 import { format } from 'date-fns';
 import type { Customer } from '../types';
@@ -9,11 +9,27 @@ import { STATUS_LABELS, STATUS_COLORS } from '../types';
 
 export default function Customers() {
   const { customers, orders, addCustomer, updateCustomer, deleteCustomer } = useStore();
+  const location = useLocation();
   const [isAdding, setIsAdding] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   
   const [viewCustomerHistory, setViewCustomerHistory] = useState<Customer | null>(null);
+  
+  // Highlight customer if navigating from an order detail
+  useEffect(() => {
+    const highlightId = location.state?.highlightCustomer;
+    if (highlightId) {
+      // Find the customer
+      const targetCustomer = customers.find(c => c.id === highlightId);
+      if (targetCustomer) {
+        setViewCustomerHistory(targetCustomer);
+      }
+      
+      // Clear the state so it doesn't pop up again on refresh
+      window.history.replaceState({}, document.title)
+    }
+  }, [location.state, customers]);
 
   const [formData, setFormData] = useState({ name: '', phone: '', address: '', notes: '' });
   const [showExtraDetails, setShowExtraDetails] = useState(false);
@@ -251,10 +267,10 @@ export default function Customers() {
                               href={`https://maps.google.com/?q=${encodeURIComponent(c.address)}`} 
                               target="_blank" 
                               rel="noreferrer" 
-                              className="flex items-center gap-1 bg-gray-50 px-1.5 py-0.5 rounded border border-gray-100 flex-1 min-w-0 hover:text-blue-600 hover:border-blue-200 transition-colors"
+                              className="inline-flex items-center gap-1 bg-gray-50 px-1.5 py-0.5 rounded border border-gray-100 hover:text-blue-600 hover:border-blue-200 transition-colors max-w-full"
                             >
                               <MapPin className="w-2.5 h-2.5 ml-1 flex-shrink-0" /> 
-                              <span className="truncate block w-full text-right">{c.address}</span>
+                              <span className="truncate block font-medium">{c.address}</span>
                             </a>
                           )}
                         </div>

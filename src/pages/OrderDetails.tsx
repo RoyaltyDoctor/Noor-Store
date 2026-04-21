@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useStore } from '../store';
-import { ChevronRight, ExternalLink, Plus, Trash2, Camera, ReceiptText, CheckCircle2, Edit2, Copy, ChevronDown, Check, Phone } from 'lucide-react';
+import { ChevronRight, ExternalLink, Plus, Trash2, Camera, ReceiptText, CheckCircle2, Edit2, Copy, ChevronDown, Check, Phone, X, MapPin, FileText } from 'lucide-react';
 import { OrderStatus, STATUS_COLORS, STATUS_LABELS, Item } from '../types';
 import { v4 as uuidv4 } from 'uuid';
 import clsx from 'clsx';
@@ -25,6 +25,7 @@ export default function OrderDetails() {
   const [copiedOrderId, setCopiedOrderId] = useState<string | null>(null);
   const [copiedSkuId, setCopiedSkuId] = useState<string | null>(null);
   const [copiedUrlId, setCopiedUrlId] = useState<string | null>(null);
+  const [showCustomerModal, setShowCustomerModal] = useState(false);
 
   if (!order) return <div className="p-4 text-center">الطلب غير موجود</div>;
 
@@ -143,10 +144,15 @@ export default function OrderDetails() {
       {/* Top Header Fixed - z-40 to prevent overlaps */}
       <div className="sticky top-0 bg-white border-b border-gray-200 z-40 px-4 py-3 shadow-sm flex items-center justify-between">
         <button onClick={() => navigate('/')} className="p-2 -ml-2 text-gray-900 active:bg-gray-100 rounded-full transition-colors">
-          <ChevronRight className="w-5 h-5" />
+          <ChevronRight className="w-6 h-6" />
         </button>
-        <div className="flex-1 text-center truncate px-2">
-          <h2 className="font-bold text-gray-900 text-sm inline-block">طلبية {customer?.name}</h2>
+        <div className="flex-1 text-center items-center justify-center flex truncate px-2">
+          <button 
+             onClick={() => setShowCustomerModal(true)} 
+             className="font-bold text-gray-900 text-base inline-block hover:text-purple-600 transition-colors bg-gray-50 px-3 py-1 rounded-full border border-gray-100 shadow-sm active:scale-95"
+          >
+             طلبية <span className="text-purple-700">{customer?.name}</span>
+          </button>
         </div>
         <div className="flex items-center gap-2">
           {customer?.phone && (
@@ -180,13 +186,27 @@ export default function OrderDetails() {
         
         {/* Status Tracker */}
         <div className="bg-white rounded-2xl p-4 border border-gray-100 shadow-sm relative overflow-hidden">
-          <div className="flex justify-between items-center mb-4 relative">
-            <div className="flex items-center gap-2 flex-1">
+          <div className="grid grid-cols-3 items-center mb-6">
+            
+            {/* Right: "حالة الطلبية" label - uses justify-self-start to push to the start of its cell (which is right in RTL) */}
+            <div className="justify-self-start">
+               <h3 className="font-bold text-gray-900 text-sm">حالة الطلبية</h3>
+            </div>
+            
+            {/* Center: Dynamic Status Badge */}
+            <div className="justify-self-center">
+              <span className={clsx("px-5 py-2 rounded-xl text-sm font-bold border inline-block whitespace-nowrap shadow-sm", STATUS_COLORS[order.status])}>
+                {STATUS_LABELS[order.status]}
+              </span>
+            </div>
+
+            {/* Left: Order Number - uses justify-self-end to push to the edge of its cell (which is left in RTL) */}
+            <div className="justify-self-end">
               {order.orderNumber && (
                 <button 
                   onClick={handleCopyOrderNumber}
                   className={clsx(
-                    "text-[10px] font-mono font-bold px-2 py-1 rounded-lg border transition-colors shadow-sm",
+                    "text-xs font-mono font-bold px-3 py-1.5 rounded-lg border transition-colors shadow-sm",
                     copiedOrderId === order.id ? "bg-green-100 text-green-700 border-green-200" : "bg-gray-100 text-gray-700 hover:bg-gray-200 border-gray-200"
                   )}
                   title="نسخ رقم الطلبية"
@@ -196,13 +216,6 @@ export default function OrderDetails() {
               )}
             </div>
             
-            <h3 className="font-bold text-gray-900 text-xs absolute left-1/2 -translate-x-1/2">حالة الطلبية</h3>
-
-            <div className="flex items-center justify-end gap-2 flex-1">
-              <span className={clsx("px-2 py-1 rounded-lg text-[10px] font-bold border inline-block", STATUS_COLORS[order.status])}>
-                {STATUS_LABELS[order.status]}
-              </span>
-            </div>
           </div>
 
           <div className="flex justify-between relative mt-6 mb-2">
@@ -220,10 +233,10 @@ export default function OrderDetails() {
                   className="relative z-10 flex flex-col items-center gap-2 group outline-none"
                 >
                   <div className={clsx(
-                    "w-5 h-5 rounded-full flex items-center justify-center border-2 transition-colors bg-white",
+                    "w-6 h-6 rounded-full flex items-center justify-center border-2 transition-colors bg-white",
                     isPast ? "border-purple-600 text-purple-600" : "border-gray-300 text-transparent"
                   )}>
-                    {isPast && <CheckCircle2 className="w-3 h-3 fill-purple-600 text-white" />}
+                    {isPast && <CheckCircle2 className="w-4 h-4 fill-purple-600 text-white" />}
                   </div>
                 </button>
               );
@@ -268,18 +281,18 @@ export default function OrderDetails() {
             ) : (
               <div className="bg-white p-4 rounded-2xl border-2 border-purple-200 shadow-sm space-y-3">
                 <div className="flex justify-between items-center mb-1">
-                  <h4 className="font-bold text-sm text-purple-900 border-b pb-2 mb-2">{editingItemId ? 'تعديل القطعة' : 'إضافة قطعة جديدة'}</h4>
+                  <h4 className="font-bold text-gray-900 border-b pb-2 mb-2">{editingItemId ? 'تعديل القطعة' : 'إضافة قطعة جديدة'}</h4>
                 </div>
                 
                 {/* Row 1: Name and SKU */}
                 <div className="flex gap-2 w-full">
                   <input type="text" placeholder="اسم القطعة (إلزامي)" 
                     value={newItem.name || ''} onChange={e => setNewItem({...newItem, name: e.target.value})}
-                    className="flex-[2] min-w-0 bg-gray-50 border border-gray-200 rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-purple-500 outline-none"
+                    className="flex-[2] min-w-0 bg-gray-50 border border-gray-200 rounded-xl px-3 py-3 focus:ring-2 focus:ring-purple-500 outline-none"
                   />
                   <input type="text" placeholder="رمز القطعة SKU" 
                     value={newItem.sku || ''} onChange={e => setNewItem({...newItem, sku: e.target.value})}
-                    className="flex-1 min-w-0 md:max-w-[120px] bg-gray-50 border border-gray-200 rounded-xl px-2 py-2 text-sm focus:ring-2 focus:ring-purple-500 outline-none text-left" dir="ltr"
+                    className="flex-1 min-w-0 md:max-w-[120px] bg-gray-50 border border-gray-200 rounded-xl px-2 py-3 focus:ring-2 focus:ring-purple-500 outline-none text-left" dir="ltr"
                   />
                 </div>
 
@@ -288,21 +301,21 @@ export default function OrderDetails() {
                 <div className="flex gap-2 w-full">
                   <input type="text" placeholder="المقاس" 
                     value={newItem.size || ''} onChange={e => setNewItem({...newItem, size: e.target.value})}
-                    className="flex-[1.2] min-w-0 w-0 bg-gray-50 border border-gray-200 rounded-xl px-2 py-2 text-sm focus:ring-2 focus:ring-purple-500 outline-none placeholder:text-xs"
+                    className="flex-[1.2] min-w-0 w-0 bg-gray-50 border border-gray-200 rounded-xl px-2 py-3 focus:ring-2 focus:ring-purple-500 outline-none"
                   />
                   <input type="text" placeholder="اللون" 
                     value={newItem.color || ''} onChange={e => setNewItem({...newItem, color: e.target.value})}
-                    className="flex-[1.2] min-w-0 w-0 bg-gray-50 border border-gray-200 rounded-xl px-2 py-2 text-sm focus:ring-2 focus:ring-purple-500 outline-none placeholder:text-xs"
+                    className="flex-[1.2] min-w-0 w-0 bg-gray-50 border border-gray-200 rounded-xl px-2 py-3 focus:ring-2 focus:ring-purple-500 outline-none"
                   />
                   <input type="number" placeholder="السعر" onFocus={e => e.target.select()}
                     value={newItem.price === 0 && !editingItemId ? '' : newItem.price} onChange={e => setNewItem({...newItem, price: Number(e.target.value)})}
-                    className="flex-[1.2] min-w-0 w-0 bg-gray-50 border border-gray-200 rounded-xl px-2 py-2 text-sm focus:ring-2 focus:ring-purple-500 outline-none placeholder:text-xs"
+                    className="flex-[1.2] min-w-0 w-0 bg-gray-50 border border-gray-200 rounded-xl px-2 py-3 focus:ring-2 focus:ring-purple-500 outline-none"
                   />
                   <div className="relative flex-1 min-w-0 w-0">
                     <button 
                       type="button" 
                       onClick={() => setShowQuantityDropdown(!showQuantityDropdown)} 
-                      className="w-full bg-gray-50 border border-gray-200 rounded-xl px-2 py-2 text-sm focus:ring-2 focus:ring-purple-500 outline-none flex justify-between items-center text-gray-700"
+                      className="w-full bg-gray-50 border border-gray-200 rounded-xl px-2 py-3 focus:ring-2 focus:ring-purple-500 outline-none flex justify-between items-center text-gray-700"
                     >
                       <span className="truncate flex-1 text-center font-bold">{newItem.quantity || 1}</span>
                       <ChevronDown className="w-3 h-3 text-gray-400 flex-shrink-0" />
@@ -336,7 +349,7 @@ export default function OrderDetails() {
                   <div className="pt-2 space-y-3 border-t border-gray-100 mt-3 relative">
                     <input type="url" placeholder="رابط المنتج" dir="auto"
                       value={newItem.url || ''} onChange={e => setNewItem({...newItem, url: e.target.value})}
-                      className="w-full bg-gray-50 border border-gray-200 rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-purple-500 outline-none text-right placeholder-gray-400"
+                      className="w-full bg-gray-50 border border-gray-200 rounded-xl px-3 py-3 focus:ring-2 focus:ring-purple-500 outline-none text-right placeholder-gray-400"
                     />
 
                     {/* Image upload */}
@@ -383,7 +396,7 @@ export default function OrderDetails() {
                   {/* Info */}
                   <div className="flex-1 pt-1 min-w-0">
                     <div className="flex justify-between items-start w-full mb-1">
-                        <h4 className="font-bold text-gray-900 text-xs leading-snug truncate pr-2">{item.name}</h4>
+                        <h4 className="font-bold text-gray-900 text-sm leading-snug truncate pr-2">{item.name}</h4>
                         {/* Actions Area inline - Subtle style */}
                         {editingItemId !== item.id && (
                           <div className="flex gap-1 flex-shrink-0">
@@ -397,35 +410,35 @@ export default function OrderDetails() {
                         )}
                     </div>
                     
-                    <div className="mt-2 flex flex-wrap gap-1.5 text-[9px] text-gray-500">
+                    <div className="mt-2 flex flex-wrap gap-1.5 text-[10px] text-gray-500">
                       {item.size && <span className="bg-gray-50 border border-gray-100 px-1.5 py-0.5 rounded shadow-sm">م: {item.size}</span>}
                       {item.color && <span className="bg-gray-50 border border-gray-100 px-1.5 py-0.5 rounded shadow-sm">ل: {item.color}</span>}
                       {item.sku && (
                         <div className="flex items-center bg-gray-50 border border-gray-100 rounded shadow-sm overflow-hidden" dir="ltr">
                           <button 
                              onClick={() => handleCopySku(item.sku!, item.id)} 
-                             className={clsx("px-1 py-0.5 transition-colors border-r border-gray-100 flex items-center justify-center h-full", copiedSkuId === item.id ? "bg-green-100 text-green-700" : "text-gray-400 hover:bg-gray-200 hover:text-gray-700")} 
+                             className={clsx("px-1.5 py-0.5 transition-colors border-r border-gray-100 flex items-center justify-center h-full", copiedSkuId === item.id ? "bg-green-100 text-green-700" : "text-gray-400 hover:bg-gray-200 hover:text-gray-700")} 
                              title="نسخ الكود"
                           >
-                            {copiedSkuId === item.id ? <Check className="w-2.5 h-2.5" /> : <Copy className="w-2.5 h-2.5" />}
+                            {copiedSkuId === item.id ? <Check className="w-3 h-3" /> : <Copy className="w-3 h-3" />}
                           </button>
                           <span className="px-1.5 py-0.5 font-mono max-w-[80px] truncate">{item.sku}</span>
                         </div>
                       )}
                     </div>
                     <div className="mt-3 flex items-center justify-between">
-                      <div className="text-xs font-bold text-gray-900">{item.price} ر.س <span className="font-normal text-[10px] text-gray-500">×{item.quantity}</span></div>
+                      <div className="text-sm font-bold text-gray-900">{item.price} ر.س <span className="font-normal text-xs text-gray-500">×{item.quantity}</span></div>
                       {item.url && (
-                        <div className="flex items-center rtl:flex-row-reverse border border-blue-100 rounded bg-blue-50/50 shadow-sm overflow-hidden text-right h-5">
+                        <div className="flex items-center rtl:flex-row-reverse border border-blue-100 rounded bg-blue-50/50 shadow-sm overflow-hidden text-right h-6">
                           <button 
                              onClick={() => handleCopyUrl(item.url!, item.id)} 
-                             className={clsx("px-1.5 py-0.5 transition-colors border-r border-blue-100 flex items-center justify-center h-full", copiedUrlId === item.id ? "bg-green-100 text-green-700" : "text-blue-400 hover:bg-blue-100 hover:text-blue-600")} 
+                             className={clsx("px-2 py-1 transition-colors border-r border-blue-100 flex items-center justify-center h-full", copiedUrlId === item.id ? "bg-green-100 text-green-700" : "text-blue-400 hover:bg-blue-100 hover:text-blue-600")} 
                              title="نسخ الرابط"
                           >
-                            {copiedUrlId === item.id ? <Check className="w-2.5 h-2.5" /> : <Copy className="w-2.5 h-2.5" />}
+                            {copiedUrlId === item.id ? <Check className="w-3 h-3" /> : <Copy className="w-3 h-3" />}
                           </button>
-                          <a href={item.url} target="_blank" rel="noreferrer" className="text-blue-600 hover:bg-blue-100/50 px-1.5 flex items-center gap-1 text-[9px] font-bold h-full">
-                            الرابط <ExternalLink className="w-2 h-2" />
+                          <a href={item.url} target="_blank" rel="noreferrer" className="text-blue-600 hover:bg-blue-100/50 px-2 flex items-center gap-1 text-[10px] font-bold h-full">
+                            الرابط <ExternalLink className="w-2.5 h-2.5" />
                           </a>
                         </div>
                       )}
@@ -445,10 +458,10 @@ export default function OrderDetails() {
               <div className="absolute top-0 left-0 p-4 opacity-10">
                 <ReceiptText className="w-32 h-32" />
               </div>
-              <h3 className="text-white/70 font-medium text-xs mb-1">المبلغ المتبقي للتحصيل</h3>
-              <div className="text-4xl font-black mb-6">{Math.max(0, remaining).toFixed(2)} <span className="text-base font-normal">ر.س</span></div>
+              <h3 className="text-white/70 font-medium text-sm mb-1">المبلغ المتبقي للتحصيل</h3>
+              <div className="text-5xl font-black mb-6">{Math.max(0, remaining).toFixed(2)} <span className="text-lg font-normal">ر.س</span></div>
               
-              <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-4 space-y-3 text-xs relative z-10 border border-white/10">
+              <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-4 space-y-3 text-sm relative z-10 border border-white/10">
                 <div className="flex justify-between items-center">
                   <span className="text-white/70">إجمالي المنتجات ({order.items.reduce((acc, i) => acc+i.quantity, 0)} قطعة):</span>
                   <span className="font-bold">{itemsTotal.toFixed(2)}</span>
@@ -462,8 +475,8 @@ export default function OrderDetails() {
                   <span className="font-bold text-orange-300">+{order.shippingFee.toFixed(2)}</span>
                 </div>
                 <div className="flex justify-between items-center border-t border-white/20 pt-3 mt-1">
-                  <span className="font-bold text-sm">الإجمالي الكلي:</span>
-                  <span className="font-bold text-sm">{total.toFixed(2)}</span>
+                  <span className="font-bold text-base">الإجمالي الكلي:</span>
+                  <span className="font-bold text-base">{total.toFixed(2)}</span>
                 </div>
                 <div className="flex justify-between items-center text-green-300 bg-green-500/10 -mx-2 px-2 py-1.5 rounded-lg border border-green-500/20">
                   <span className="font-medium">المدفوع مقدماً (عربون):</span>
@@ -473,7 +486,7 @@ export default function OrderDetails() {
             </div>
 
             <div className="bg-white p-5 rounded-3xl border border-gray-100 shadow-sm space-y-4">
-              <h4 className="font-bold text-gray-900 mb-1 text-sm">تحديث المبالغ الإضافية</h4>
+              <h4 className="font-bold text-gray-900 mb-1">تحديث المبالغ الإضافية</h4>
               
               <div>
                 <label className="block text-xs font-bold text-gray-600 mb-2">رسوم الخدمة (عمولة) <span className="text-gray-400 font-normal">بالريال</span></label>
@@ -508,35 +521,35 @@ export default function OrderDetails() {
           <div className="space-y-4">
             
             <div className="bg-white p-4 rounded-2xl border border-gray-100 shadow-sm space-y-3">
-              <h4 className="font-bold text-gray-900 text-sm">تتبع الشحنة</h4>
+              <h4 className="font-bold text-gray-900">تتبع الشحنة</h4>
               <input type="text" placeholder="رقم تتبع الشحنة" 
                 value={order.trackingNumber || ''} onChange={e => updateOrder(order.id, { trackingNumber: e.target.value })}
-                className="w-full bg-gray-50 border border-gray-200 rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-purple-500 outline-none text-right" dir="rtl"
+                className="w-full bg-gray-50 border border-gray-200 rounded-xl px-3 py-3 focus:ring-2 focus:ring-purple-500 outline-none text-right" dir="rtl"
               />
             </div>
 
             <div className="bg-white p-4 rounded-2xl border border-gray-100 shadow-sm space-y-3">
-              <h4 className="font-bold text-gray-900 text-sm">ملاحظات العميل</h4>
+              <h4 className="font-bold text-gray-900">ملاحظات العميل</h4>
               <textarea placeholder="ملاحظات العميل..." rows={3}
                 value={order.notes?.customerNotes || ''} onChange={e => updateOrder(order.id, { notes: { ...order.notes, customerNotes: e.target.value } })}
-                className="w-full bg-gray-50 border border-gray-200 rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-purple-500 outline-none resize-none"
+                className="w-full bg-gray-50 border border-gray-200 rounded-xl px-3 py-3 focus:ring-2 focus:ring-purple-500 outline-none resize-none"
               />
             </div>
 
             <div className="bg-white p-4 rounded-2xl border border-yellow-200 shadow-sm space-y-3 bg-yellow-50/50">
-              <h4 className="font-bold text-yellow-800 text-sm">ملاحظات خاصة بي</h4>
+              <h4 className="font-bold text-yellow-800">ملاحظات خاصة بي</h4>
               <textarea placeholder="ملاحظات خاصة بي..." rows={3}
                 value={order.notes?.internalNotes || ''} onChange={e => updateOrder(order.id, { notes: { ...order.notes, internalNotes: e.target.value } })}
-                className="w-full bg-white border border-yellow-200 rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-yellow-500 outline-none resize-none placeholder:text-yellow-600/40"
+                className="w-full bg-white border border-yellow-200 rounded-xl px-3 py-3 focus:ring-2 focus:ring-yellow-500 outline-none resize-none placeholder:text-yellow-600/40"
               />
             </div>
 
             <div className="bg-white p-4 rounded-2xl border border-gray-100 shadow-sm">
-              <h4 className="font-bold text-gray-900 mb-3 text-sm">تغيير العميل المرتبط بالطلبية</h4>
+              <h4 className="font-bold text-gray-900 mb-3">تغيير العميل المرتبط بالطلبية</h4>
               <select 
                 value={order.customerId} 
                 onChange={(e) => updateOrder(order.id, { customerId: e.target.value })}
-                className="w-full bg-gray-50 border border-gray-200 rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-purple-500 outline-none"
+                className="w-full bg-gray-50 border border-gray-200 rounded-xl px-3 py-3 focus:ring-2 focus:ring-purple-500 outline-none"
               >
                 {customers.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
               </select>
@@ -594,6 +607,65 @@ export default function OrderDetails() {
               >
                 إلغاء
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Customer Info Modal */}
+      {showCustomerModal && customer && (
+        <div className="fixed inset-0 z-[60] bg-black/50 flex items-center justify-center p-4 backdrop-blur-sm" onClick={() => setShowCustomerModal(false)}>
+          <div className="bg-white rounded-3xl p-6 max-w-sm w-full shadow-2xl relative" onClick={e => e.stopPropagation()}>
+            <button
+              onClick={() => setShowCustomerModal(false)}
+              className="absolute top-4 left-4 p-1.5 bg-gray-100 text-gray-500 rounded-full hover:bg-gray-200 transition-colors"
+            >
+              <X className="w-5 h-5" />
+            </button>
+            <h3 className="text-xl font-bold text-gray-900 mb-4 pr-3 border-r-4 border-purple-500">بيانات العميل</h3>
+            
+            <div className="space-y-4">
+              <div>
+                <label className="text-xs text-gray-500 block mb-1">الاسم</label>
+                <p className="font-bold text-gray-900 bg-gray-50 px-3 py-2 rounded-lg border border-gray-100">{customer.name}</p>
+              </div>
+              
+              {customer.phone && (
+                <div>
+                  <label className="text-xs text-gray-500 block mb-1">رقم الهاتف</label>
+                  <div className="flex items-center justify-between bg-gray-50 px-3 py-2 rounded-lg border border-gray-100">
+                    <span className="font-mono text-gray-700 block text-left w-full" dir="ltr">{customer.phone}</span>
+                    <div className="flex items-center gap-2 border-r border-gray-200 pr-2 ml-4">
+                      <a href={`https://wa.me/${customer.phone.replace(/[^0-9]/g, '')}`} target="_blank" rel="noreferrer" className="text-[#25D366] hover:scale-110 transition-transform">
+                         <svg viewBox="0 0 24 24" fill="currentColor" className="w-5 h-5"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
+                      </a>
+                      <a href={`tel:${customer.phone.replace(/[^0-9+]/g, '')}`} className="text-blue-500 hover:scale-110 transition-transform">
+                        <Phone className="w-4 h-4" />
+                      </a>
+                    </div>
+                  </div>
+                </div>
+              )}
+              
+              {customer.address && (
+                <div>
+                  <label className="text-xs text-gray-500 block mb-1">العنوان</label>
+                  <a href={`https://maps.google.com/?q=${encodeURIComponent(customer.address)}`} target="_blank" rel="noreferrer" className="flex items-start gap-2 bg-gray-50 px-3 py-2 rounded-lg border border-gray-100 hover:bg-gray-100 hover:text-blue-600 transition-colors">
+                     <MapPin className="w-4 h-4 flex-shrink-0 mt-0.5 text-gray-400" />
+                     <span className="text-sm font-medium">{customer.address}</span>
+                  </a>
+                </div>
+              )}
+              
+              {customer.notes && (
+                <div>
+                  <label className="text-xs text-gray-500 block mb-1">ملاحظات</label>
+                  <div className="bg-yellow-50/50 px-3 py-2 rounded-lg border border-yellow-100 text-yellow-800 text-sm leading-relaxed flex items-start gap-2">
+                     <FileText className="w-4 h-4 flex-shrink-0 mt-0.5" />
+                     <span>{customer.notes}</span>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         </div>
