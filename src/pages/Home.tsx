@@ -1,27 +1,68 @@
-import React, { useState, useMemo } from 'react';
-import { useStore } from '../store';
+import React, { useState, useMemo, useEffect, useLayoutEffect } from 'react';
+import { useStore, useFilterStore } from '../store';
 import { Link, useNavigate } from 'react-router-dom';
-import { Plus, Search, Filter, Phone, Package, ChevronLeft, X, UserPlus, CheckSquare, Square, Check, LayoutList } from 'lucide-react';
+import { Plus, Search, Filter, Phone, Package, ChevronLeft, X, UserPlus, CheckSquare, Square, Check, LayoutList, CalendarDays, ChevronDown, ChevronUp } from 'lucide-react';
 import { STATUS_LABELS, STATUS_COLORS, OrderStatus, Order } from '../types';
 import clsx from 'clsx';
-import { format } from 'date-fns';
+import { format, isToday, isThisWeek, isThisMonth, startOfDay, endOfDay } from 'date-fns';
 
 export default function Home() {
   const { orders, customers, addOrder, addCustomer } = useStore();
+  const { 
+    searchQuery, setSearchQuery, 
+    isMultiSelectMode, setIsMultiSelectMode,
+    selectedStatus, setSelectedStatus,
+    selectedStatusesMult, setSelectedStatusesMult,
+    dateFilter, setDateFilter,
+    customStartDate, setCustomStartDate,
+    customEndDate, setCustomEndDate,
+    scrollPosition, setScrollPosition
+  } = useFilterStore();
+  
   const navigate = useNavigate();
+
+  const scrollRestored = React.useRef(false);
+
+  useLayoutEffect(() => {
+    // Restore scroll position slightly after render to ensure content is painted
+    if (!scrollRestored.current) {
+      requestAnimationFrame(() => {
+         window.scrollTo(0, scrollPosition);
+         scrollRestored.current = true;
+      });
+    }
+
+    let timeoutId: any;
+    const handleScroll = () => {
+      // Throttle state update
+      if (timeoutId) clearTimeout(timeoutId);
+      timeoutId = setTimeout(() => {
+         setScrollPosition(window.scrollY);
+      }, 100);
+    };
+    
+    // Add scroll event listener to constantly track position in case user uses browser back button
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    
+    return () => {
+      window.removeEventListener('scroll', handleScroll);
+      if (timeoutId) clearTimeout(timeoutId);
+    };
+  }, []); // Empty dependencies to mount once
+
+  const handleNavigateToOrder = (id: string) => {
+    navigate(`/order/${id}`);
+  };
   
-  const [searchQuery, setSearchQuery] = useState('');
-  
-  // Filter settings
-  const [isMultiSelectMode, setIsMultiSelectMode] = useState(false);
-  const [selectedStatus, setSelectedStatus] = useState<OrderStatus | 'ALL' | 'ACTIVE'>('ACTIVE');
-  const [selectedStatusesMult, setSelectedStatusesMult] = useState<OrderStatus[]>(['PENDING', 'ORDERED', 'RECEIVED', 'SHIPPING']);
+  // Local dropdown visibility state
   const [showFilterDropdown, setShowFilterDropdown] = useState(false);
+  const [showDateDropdown, setShowDateDropdown] = useState(false);
 
   const [showNewOrderModal, setShowNewOrderModal] = useState(false);
   const [customerSearch, setCustomerSearch] = useState('');
   const [isAddingNewCustomer, setIsAddingNewCustomer] = useState(false);
-  const [newCustomerForm, setNewCustomerForm] = useState({ name: '', phone: '' });
+  const [newCustomerForm, setNewCustomerForm] = useState({ name: '', phone: '', address: '', notes: '' });
+  const [showExtraFields, setShowExtraFields] = useState(false);
   
   const [itemsModalOrder, setItemsModalOrder] = useState<Order | null>(null);
 
@@ -29,6 +70,28 @@ export default function Home() {
 
   const filteredOrders = useMemo(() => {
     return orders.filter((o) => {
+      // Date filter
+      if (dateFilter !== 'ALL') {
+        const timestamp = o.dates?.created || (o as any).createdAt || Date.now();
+        const orderDate = new Date(timestamp);
+        
+        if (dateFilter === 'TODAY' && !isToday(orderDate)) return false;
+        if (dateFilter === 'THIS_WEEK' && !isThisWeek(orderDate, { weekStartsOn: 6 })) return false; // weekStartsOn: 6 (Saturday) is common in Middle East
+        if (dateFilter === 'THIS_MONTH' && !isThisMonth(orderDate)) return false;
+        if (dateFilter === 'CUSTOM') {
+          if (customStartDate) {
+            const [y, m, d] = customStartDate.split('-').map(Number);
+            const start = new Date(y, m - 1, d, 0, 0, 0);
+            if (orderDate.getTime() < start.getTime()) return false;
+          }
+          if (customEndDate) {
+            const [y, m, d] = customEndDate.split('-').map(Number);
+            const end = new Date(y, m - 1, d, 23, 59, 59, 999);
+            if (orderDate.getTime() > end.getTime()) return false;
+          }
+        }
+      }
+
       // Status filter
       if (isMultiSelectMode) {
         if (!selectedStatusesMult.includes(o.status)) return false;
@@ -47,7 +110,7 @@ export default function Home() {
       
       return customerMatch || orderNumMatch || trackingMatch;
     });
-  }, [orders, isMultiSelectMode, selectedStatusesMult, selectedStatus, searchQuery, customers]);
+  }, [orders, isMultiSelectMode, selectedStatusesMult, selectedStatus, searchQuery, customers, dateFilter, customStartDate, customEndDate]);
 
   const filteredCustomersForOrder = useMemo(() => {
     return customers.filter(c => c.name.includes(customerSearch) || c.phone.includes(customerSearch));
@@ -61,7 +124,12 @@ export default function Home() {
 
   const handleCreateCustomerAndOrder = () => {
     if (!newCustomerForm.name) return;
-    const cid = addCustomer({ name: newCustomerForm.name, phone: newCustomerForm.phone, address: '' });
+    const cid = addCustomer({ 
+      name: newCustomerForm.name, 
+      phone: newCustomerForm.phone, 
+      address: newCustomerForm.address,
+      notes: newCustomerForm.notes 
+    });
     const oid = addOrder(cid);
     navigate(`/order/${oid}`);
     setShowNewOrderModal(false);
@@ -108,6 +176,17 @@ export default function Home() {
           />
         </div>
         <button 
+          onClick={() => setShowDateDropdown(!showDateDropdown)}
+          className={clsx(
+            "p-2 rounded-xl border transition-colors relative",
+            dateFilter !== 'ALL' ? "bg-purple-50 border-purple-200 text-purple-600" : "bg-white border-gray-200 text-gray-600"
+          )}
+          title="تصفية حسب التاريخ"
+        >
+          <CalendarDays className="w-5 h-5" />
+          {dateFilter !== 'ALL' && <div className="absolute top-1 right-1 w-2 h-2 bg-purple-500 rounded-full border border-white"></div>}
+        </button>
+        <button 
           onClick={() => setShowFilterDropdown(!showFilterDropdown)}
           className={clsx(
             "p-2 rounded-xl border transition-colors",
@@ -116,6 +195,33 @@ export default function Home() {
         >
           <Filter className="w-5 h-5" />
         </button>
+
+        {showDateDropdown && (
+          <div className="absolute top-12 left-12 w-48 bg-white border border-gray-200 rounded-xl shadow-xl z-20 py-2">
+            <div className="px-4 py-2 border-b border-gray-100 mb-1">
+              <span className="text-xs font-bold text-gray-500">تاريخ الطلبية</span>
+            </div>
+            
+            {[
+              { id: 'ALL', label: 'الكل' },
+              { id: 'TODAY', label: 'اليوم' },
+              { id: 'THIS_WEEK', label: 'هذا الأسبوع' },
+              { id: 'THIS_MONTH', label: 'هذا الشهر' },
+              { id: 'CUSTOM', label: 'فترة محددة...' }
+            ].map(filter => (
+              <button 
+                key={filter.id}
+                onClick={() => { setDateFilter(filter.id as DateFilterType); setShowDateDropdown(false); }}
+                className="w-full text-right px-4 py-2 hover:bg-gray-50 text-sm flex items-center gap-3 transition-colors outline-none"
+              >
+                <div className={clsx("w-4 h-4 rounded-full border flex items-center justify-center transition-colors", dateFilter === filter.id ? "border-purple-600 bg-purple-600" : "border-gray-300 bg-white")}>
+                   {dateFilter === filter.id && <div className="w-1.5 h-1.5 bg-white rounded-full" />}
+                </div>
+                <span className={clsx("transition-colors", dateFilter === filter.id ? "text-purple-700 font-bold" : "text-gray-700")}>{filter.label}</span>
+              </button>
+            ))}
+          </div>
+        )}
 
         {showFilterDropdown && (
           <div className="absolute top-12 left-0 w-56 bg-white border border-gray-200 rounded-xl shadow-xl z-20 py-2">
@@ -183,6 +289,29 @@ export default function Home() {
         )}
       </div>
 
+      {dateFilter === 'CUSTOM' && (
+        <div className="flex gap-2 items-center bg-purple-50 p-3 rounded-xl border border-purple-100">
+          <div className="flex-1">
+            <label className="text-[10px] font-bold text-gray-500 block mb-1">من تاريخ</label>
+            <input 
+              type="date" 
+              value={customStartDate} 
+              onChange={e => setCustomStartDate(e.target.value)}
+              className="w-full text-sm bg-white border border-gray-200 rounded-lg px-2 py-1.5 outline-none focus:ring-2 focus:ring-purple-500"
+            />
+          </div>
+          <div className="flex-1">
+            <label className="text-[10px] font-bold text-gray-500 block mb-1">إلى تاريخ</label>
+            <input 
+              type="date" 
+              value={customEndDate} 
+              onChange={e => setCustomEndDate(e.target.value)}
+              className="w-full text-sm bg-white border border-gray-200 rounded-lg px-2 py-1.5 outline-none focus:ring-2 focus:ring-purple-500"
+            />
+          </div>
+        </div>
+      )}
+
       <div className="space-y-3">
         {filteredOrders.length === 0 ? (
           <div className="text-center py-10 text-gray-400">
@@ -200,7 +329,7 @@ export default function Home() {
             return (
               <div 
                 key={order.id} 
-                onClick={() => navigate(`/order/${order.id}`)}
+                onClick={() => handleNavigateToOrder(order.id)}
                 className="block cursor-pointer bg-white p-4 rounded-2xl border border-gray-100 shadow-sm active:scale-[0.98] transition-transform"
               >
                 <div className="flex justify-between items-start mb-3">
@@ -317,7 +446,7 @@ export default function Home() {
             </div>
             <button
                onClick={() => {
-                 navigate(`/order/${itemsModalOrder.id}`);
+                 handleNavigateToOrder(itemsModalOrder.id);
                  setItemsModalOrder(null);
                }}
                className="mt-4 w-full bg-purple-100 text-purple-700 py-3 rounded-xl font-bold text-sm active:bg-purple-200 transition-colors"
@@ -370,18 +499,46 @@ export default function Home() {
               </div>
             ) : (
               <div className="space-y-3">
-                <input 
-                  type="text" placeholder="اسم العميل (إلزامي)" 
-                  value={newCustomerForm.name} onChange={e => setNewCustomerForm({...newCustomerForm, name: e.target.value})}
-                  className="w-full bg-gray-50 border border-gray-200 rounded-xl px-3 py-3 text-sm focus:ring-2 focus:ring-purple-500 outline-none"
-                />
-                <input 
-                  type="tel" placeholder="رقم الهاتف (اختياري)" 
-                  value={newCustomerForm.phone} onChange={e => setNewCustomerForm({...newCustomerForm, phone: e.target.value})}
-                  className="w-full bg-gray-50 border border-gray-200 rounded-xl px-3 py-3 text-sm focus:ring-2 focus:ring-purple-500 outline-none dir-rtl"
-                />
+                <div className="flex gap-2">
+                  <input 
+                    type="text" placeholder="اسم العميل (إلزامي)" 
+                    value={newCustomerForm.name} onChange={e => setNewCustomerForm({...newCustomerForm, name: e.target.value})}
+                    className="w-2/3 bg-gray-50 border border-gray-200 rounded-xl px-3 py-3 text-sm focus:ring-2 focus:ring-purple-500 outline-none"
+                  />
+                  <input 
+                    type="tel" placeholder="رقم الهاتف" 
+                    value={newCustomerForm.phone} onChange={e => setNewCustomerForm({...newCustomerForm, phone: e.target.value})}
+                    className="w-1/3 bg-gray-50 border border-gray-200 rounded-xl px-3 py-3 text-sm focus:ring-2 focus:ring-purple-500 outline-none dir-rtl"
+                  />
+                </div>
+                
+                <div className="border border-gray-100 rounded-xl overflow-hidden bg-gray-50 transition-all">
+                  <button 
+                    onClick={() => setShowExtraFields(!showExtraFields)}
+                    className="w-full flex items-center justify-between p-3 text-sm font-bold text-gray-600 hover:bg-gray-100 transition-colors"
+                  >
+                    <span>تفاصيل إضافية (العنوان والملاحظات)</span>
+                    {showExtraFields ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+                  </button>
+                  {showExtraFields && (
+                    <div className="p-3 border-t border-gray-100 space-y-3 bg-white">
+                      <input 
+                        type="text" placeholder="(العنوان/المنطقة)" 
+                        value={newCustomerForm.address} onChange={e => setNewCustomerForm({...newCustomerForm, address: e.target.value})}
+                        className="w-full bg-gray-50 border border-gray-200 rounded-xl px-3 py-3 text-sm focus:ring-2 focus:ring-purple-500 outline-none"
+                      />
+                      <input 
+                        type="text"
+                        placeholder="(ملاحظات حول العميل)" 
+                        value={newCustomerForm.notes} onChange={e => setNewCustomerForm({...newCustomerForm, notes: e.target.value})}
+                        className="w-full bg-gray-50 border border-gray-200 rounded-xl px-3 py-3 text-sm focus:ring-2 focus:ring-purple-500 outline-none"
+                      />
+                    </div>
+                  )}
+                </div>
+
                 <div className="flex gap-2 pt-4">
-                  <button onClick={handleCreateCustomerAndOrder} disabled={!newCustomerForm.name} className="flex-1 bg-purple-600 disabled:opacity-50 text-white py-3 rounded-xl font-bold text-sm shadow-md transition-opacity">إضافة العميل وتكوين الطلبية</button>
+                  <button onClick={handleCreateCustomerAndOrder} disabled={!newCustomerForm.name} className="flex-1 bg-purple-600 disabled:opacity-50 text-white py-3 rounded-xl font-bold text-sm shadow-md transition-opacity">إضافة عميل وتكوين الطلبية</button>
                   <button onClick={() => setIsAddingNewCustomer(false)} className="flex-none px-4 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-xl font-bold text-sm transition-colors">رجوع</button>
                 </div>
               </div>

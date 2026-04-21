@@ -17,6 +17,56 @@ const idbStorage: StateStorage = {
   },
 };
 
+export type DateFilterType = 'ALL' | 'TODAY' | 'THIS_WEEK' | 'THIS_MONTH' | 'CUSTOM';
+
+interface FilterState {
+  searchQuery: string;
+  isMultiSelectMode: boolean;
+  selectedStatus: OrderStatus | 'ALL' | 'ACTIVE';
+  selectedStatusesMult: OrderStatus[];
+  dateFilter: DateFilterType;
+  customStartDate: string;
+  customEndDate: string;
+  scrollPosition: number;
+  setSearchQuery: (val: string) => void;
+  setIsMultiSelectMode: (val: boolean) => void;
+  setSelectedStatus: (val: OrderStatus | 'ALL' | 'ACTIVE') => void;
+  setSelectedStatusesMult: (val: OrderStatus[]) => void;
+  setDateFilter: (val: DateFilterType) => void;
+  setCustomStartDate: (val: string) => void;
+  setCustomEndDate: (val: string) => void;
+  setScrollPosition: (val: number) => void;
+  reset: () => void;
+}
+
+export const useFilterStore = create<FilterState>((set) => ({
+  searchQuery: '',
+  isMultiSelectMode: false,
+  selectedStatus: 'ACTIVE',
+  selectedStatusesMult: ['PENDING', 'ORDERED', 'RECEIVED', 'SHIPPING'],
+  dateFilter: 'ALL',
+  customStartDate: '',
+  customEndDate: '',
+  scrollPosition: 0,
+  setSearchQuery: (val) => set({ searchQuery: val }),
+  setIsMultiSelectMode: (val) => set({ isMultiSelectMode: val }),
+  setSelectedStatus: (val) => set({ selectedStatus: val }),
+  setSelectedStatusesMult: (val) => set({ selectedStatusesMult: val }),
+  setDateFilter: (val) => set({ dateFilter: val }),
+  setCustomStartDate: (val) => set({ customStartDate: val }),
+  setCustomEndDate: (val) => set({ customEndDate: val }),
+  setScrollPosition: (val) => set({ scrollPosition: val }),
+  reset: () => set({
+    searchQuery: '',
+    isMultiSelectMode: false,
+    selectedStatus: 'ACTIVE',
+    selectedStatusesMult: ['PENDING', 'ORDERED', 'RECEIVED', 'SHIPPING'],
+    dateFilter: 'ALL',
+    customStartDate: '',
+    customEndDate: '',
+  })
+}));
+
 interface AppState {
   customers: Customer[];
   orders: Order[];

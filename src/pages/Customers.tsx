@@ -141,15 +141,15 @@ export default function Customers() {
           {showExtraDetails && (
             <div className="space-y-3 pt-2 border-t border-gray-100">
                <input 
-                 type="text" placeholder="العنوان / المنطقة" 
+                 type="text" placeholder="(العنوان/المنطقة)" 
                  value={formData.address} onChange={e => setFormData({ ...formData, address: e.target.value })}
                  className="w-full bg-gray-50 border border-gray-200 rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-purple-500 outline-none"
                />
-               <textarea 
-                 placeholder="ملاحظات العميل (مثل: يحب التغليف الورقي...)" 
-                 rows={2}
+               <input 
+                 type="text"
+                 placeholder="(ملاحظات حول العميل)" 
                  value={formData.notes || ''} onChange={e => setFormData({ ...formData, notes: e.target.value })}
-                 className="w-full bg-yellow-50 border border-yellow-200 rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-yellow-500 outline-none placeholder:text-yellow-700/50 resize-none"
+                 className="w-full bg-yellow-50 border border-yellow-200 rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-yellow-500 outline-none placeholder:text-yellow-700/50"
                />
             </div>
           )}
@@ -204,15 +204,15 @@ export default function Customers() {
                     {showExtraDetails && (
                       <div className="space-y-2 pt-1">
                          <input 
-                           type="text" placeholder="العنوان / المنطقة" 
+                           type="text" placeholder="(العنوان/المنطقة)" 
                            value={formData.address} onChange={e => setFormData({ ...formData, address: e.target.value })}
                            className="w-full bg-white border border-gray-200 rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-purple-500 outline-none"
                          />
-                         <textarea 
-                           placeholder="ملاحظات العميل (مثل: يحب التغليف الورقي...)" 
-                           rows={2}
+                         <input 
+                           type="text"
+                           placeholder="(ملاحظات حول العميل)" 
                            value={formData.notes || ''} onChange={e => setFormData({ ...formData, notes: e.target.value })}
-                           className="w-full bg-yellow-50 border border-yellow-200 rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-yellow-500 outline-none placeholder:text-yellow-700/50 resize-none"
+                           className="w-full bg-yellow-50 border border-yellow-200 rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-yellow-500 outline-none placeholder:text-yellow-700/50"
                          />
                       </div>
                     )}
