@@ -384,9 +384,9 @@ export default function Home() {
                   </span>
                   <div onClick={(e) => e.stopPropagation()} className="flex items-center text-[10px] text-gray-600 gap-1.5 overflow-hidden">
                     {customer?.phone && (
-                      <div className="flex items-center font-mono bg-gray-50 px-1.5 py-0.5 rounded border border-gray-100 whitespace-nowrap gap-1.5 flex-shrink-0">
+                      <div dir="ltr" className="flex items-center font-mono bg-gray-50 px-1.5 py-0.5 rounded border border-gray-100 whitespace-nowrap gap-1.5 flex-shrink-0">
                          <a href={`tel:${customer.phone.replace(/[^0-9+]/g, '')}`} className="flex items-center hover:text-blue-600 transition-colors">
-                           <Phone className="w-2.5 h-2.5 ml-1" /> {customer.phone}
+                           <Phone className="w-2.5 h-2.5 mr-1" /> {customer.phone}
                          </a>
                          <div className="w-px h-2.5 bg-gray-300"></div>
                          <a 

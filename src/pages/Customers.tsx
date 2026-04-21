@@ -62,7 +62,7 @@ export default function Customers() {
     setFormData({ name: c.name, phone: c.phone || '', address: c.address || '', notes: c.notes || '' });
     setEditingId(c.id);
     setIsAdding(true);
-    setShowExtraDetails(!!c.address || !!c.notes);
+    setShowExtraDetails(false);
   };
 
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
@@ -246,9 +246,9 @@ export default function Customers() {
                       <div className="flex flex-col gap-1.5 flex-1 min-w-0">
                         <div className="flex items-center text-[10px] text-gray-600 gap-1.5 w-full overflow-hidden" onClick={e => e.stopPropagation()}>
                           {c.phone && (
-                            <div className="flex items-center font-mono bg-gray-50 px-1.5 py-0.5 rounded border border-gray-100 whitespace-nowrap gap-1.5 flex-shrink-0">
+                            <div dir="ltr" className="flex items-center font-mono bg-gray-50 px-1.5 py-0.5 rounded border border-gray-100 whitespace-nowrap gap-1.5 flex-shrink-0">
                                <a href={`tel:${c.phone.replace(/[^0-9+]/g, '')}`} className="flex items-center hover:text-blue-600 transition-colors">
-                                 <Phone className="w-2.5 h-2.5 ml-1" /> {c.phone}
+                                 <Phone className="w-2.5 h-2.5 mr-1" /> {c.phone}
                                </a>
                                <div className="w-px h-2.5 bg-gray-300"></div>
                                <a 

@@ -120,25 +120,22 @@ export const useStore = create<AppState>()(
         // 1 month in ms = 30 * 24 * 60 * 60 * 1000 = 2592000000
         const ONE_MONTH_MS = 2592000000;
         
-        // Find if any deleted order is older than 1 month
-        // We use state.deletedOrders which might be undefined if loaded from old persistence
+        // Filter out order numbers that were deleted more than 1 month ago
+        // This makes them mathematically "available" for the random generator below
         const safeDeletedOrders = state.deletedOrders || [];
-        const reusableIndex = safeDeletedOrders.findIndex(d => now - d.deletedAt >= ONE_MONTH_MS);
+        const activeReservations = safeDeletedOrders.filter(d => now - d.deletedAt < ONE_MONTH_MS);
         
-        let newDeletedOrders = [...safeDeletedOrders];
-
-        if (reusableIndex !== -1) {
-          orderNumber = safeDeletedOrders[reusableIndex].orderNumber;
-          // Remove used number from the pool
-          newDeletedOrders.splice(reusableIndex, 1);
-        } else {
-          // Generate a unique 5-digit order number
-          let isUnique = false;
-          while (!isUnique) {
-            orderNumber = Math.floor(10000 + Math.random() * 90000).toString();
-            if (!state.orders.some(o => o.orderNumber === orderNumber)) {
-              isUnique = true;
-            }
+        // Generate a unique 5-digit order number
+        let isUnique = false;
+        while (!isUnique) {
+          orderNumber = Math.floor(10000 + Math.random() * 90000).toString();
+          
+          // It's unique if it's not currently active AND not recently deleted (within the last month)
+          const isActivelyUsed = state.orders.some(o => o.orderNumber === orderNumber);
+          const isReserved = activeReservations.some(d => d.orderNumber === orderNumber);
+          
+          if (!isActivelyUsed && !isReserved) {
+            isUnique = true;
           }
         }
         
@@ -157,7 +154,7 @@ export const useStore = create<AppState>()(
         
         set((state) => ({
           orders: [newOrder, ...state.orders],
-          deletedOrders: newDeletedOrders
+          deletedOrders: activeReservations
         }));
         
         return id;
