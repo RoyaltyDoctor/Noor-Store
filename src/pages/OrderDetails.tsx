@@ -147,15 +147,16 @@ export default function OrderDetails() {
         <button onClick={() => navigate('/')} className="p-2 -ml-2 text-gray-900 active:bg-gray-100 rounded-full transition-colors">
           <ChevronRight className="w-6 h-6" />
         </button>
-        <div className="flex-1 text-center items-center justify-center flex truncate px-2">
+        <div className="flex-1 min-w-0 text-center items-center justify-center flex px-2 overflow-hidden">
           <button 
              onClick={() => setShowCustomerModal(true)} 
-             className="font-bold text-gray-900 text-base inline-block hover:text-purple-600 transition-colors bg-gray-50 px-3 py-1 rounded-full border border-gray-100 shadow-sm active:scale-95"
+             className="font-bold text-gray-900 text-base inline-flex items-center hover:text-purple-600 transition-colors bg-gray-50 px-3 py-1 rounded-full border border-gray-100 shadow-sm active:scale-95 max-w-full"
           >
-             طلبية <span className="text-purple-700">{customer?.name}</span>
+             <span className="flex-shrink-0 ml-1">طلبية</span>
+             <span className="text-purple-700 truncate min-w-0 max-w-[150px] sm:max-w-[200px]" title={customer?.name}>{customer?.name}</span>
           </button>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-shrink-0">
           {customer?.phone && (
             <div className="flex items-center gap-1.5 bg-gray-50 border border-gray-100 px-2 py-1 rounded-lg text-gray-500 font-mono tracking-wider dir-ltr">
               <a 

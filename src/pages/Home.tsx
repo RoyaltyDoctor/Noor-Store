@@ -335,16 +335,16 @@ export default function Home() {
                 onClick={() => handleNavigateToOrder(order.id)}
                 className="block cursor-pointer bg-white p-4 rounded-2xl border border-gray-100 shadow-sm active:scale-[0.98] transition-transform"
               >
-                <div className="flex justify-between items-start mb-3">
-                  <div>
-                    <h3 className="font-bold text-gray-900">{customer?.name || 'عميل غير معروف'}</h3>
+                <div className="flex justify-between items-start mb-3 gap-3">
+                  <div className="min-w-0 flex-1">
+                    <h3 className="font-bold text-gray-900 truncate leading-tight" title={customer?.name || 'عميل غير معروف'}>{customer?.name || 'عميل غير معروف'}</h3>
                   </div>
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-2 flex-shrink-0">
                     {order.orderNumber && (
                       <button 
                         onClick={(e) => handleCopy(e, order.orderNumber!, order.id)}
                         className={clsx(
-                          "text-[10px] font-mono font-bold px-2 py-1 rounded-md border transition-colors",
+                          "text-[10px] font-mono font-bold px-2 py-1 rounded-md border transition-colors whitespace-nowrap",
                           copiedOrderId === order.id ? "bg-green-100 text-green-700 border-green-200" : "bg-gray-100 text-gray-700 hover:bg-gray-200 border-gray-200"
                         )}
                         title="نسخ رقم الطلبية"
@@ -352,7 +352,7 @@ export default function Home() {
                         #{order.orderNumber}
                       </button>
                     )}
-                    <span className={clsx("text-xs font-bold px-2 py-1 rounded-md border", STATUS_COLORS[order.status])}>
+                    <span className={clsx("text-xs font-bold px-2 py-1 rounded-md border whitespace-nowrap", STATUS_COLORS[order.status])}>
                       {STATUS_LABELS[order.status]}
                     </span>
                   </div>
