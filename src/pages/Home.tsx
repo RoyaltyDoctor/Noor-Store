@@ -128,38 +128,59 @@ export default function Home() {
               </button>
             </div>
 
-            {isMultiSelectMode ? (
-              <>
-                <div className="px-3 pb-2 mb-2 border-b border-gray-50 flex justify-between text-xs font-bold text-gray-500">
-                  <button onClick={() => setSelectedStatusesMult(['PENDING', 'ORDERED', 'RECEIVED', 'SHIPPING', 'DELIVERED'])} className="hover:text-purple-600 px-2">تحديد الكل</button>
-                  <button onClick={() => setSelectedStatusesMult(['PENDING', 'ORDERED', 'RECEIVED', 'SHIPPING'])} className="hover:text-purple-600 px-2">قيد التنفيذ</button>
-                </div>
-                {Object.entries(STATUS_LABELS).map(([key, label]) => {
-                  const isActive = selectedStatusesMult.includes(key as OrderStatus);
-                  return (
-                    <button key={key} onClick={() => toggleMultiselectStatus(key as OrderStatus)} className="w-full text-right px-4 py-2 hover:bg-gray-50 text-sm flex items-center gap-3">
-                      {isActive ? <CheckSquare className="w-4 h-4 text-purple-600"/> : <Square className="w-4 h-4 text-gray-300"/>}
-                      {label}
+            <div className="px-3 pb-2 mb-2 border-b border-gray-50 flex justify-between text-[11px] font-bold">
+               <button 
+                 onClick={() => {
+                   if (isMultiSelectMode) setSelectedStatusesMult(['PENDING', 'ORDERED', 'RECEIVED', 'SHIPPING', 'DELIVERED']);
+                   else { setSelectedStatus('ALL'); setShowFilterDropdown(false); }
+                 }} 
+                 className={clsx("px-2 py-1 transition-colors rounded hover:bg-gray-50", 
+                    (isMultiSelectMode ? selectedStatusesMult.length === 5 : selectedStatus === 'ALL') 
+                    ? "text-purple-700 bg-purple-50" : "text-gray-500"
+                 )}
+               >
+                 {isMultiSelectMode ? 'تحديد الكل' : 'عرض الكل'}
+               </button>
+               <button 
+                 onClick={() => {
+                   if (isMultiSelectMode) setSelectedStatusesMult(['PENDING', 'ORDERED', 'RECEIVED', 'SHIPPING']);
+                   else { setSelectedStatus('ACTIVE'); setShowFilterDropdown(false); }
+                 }} 
+                 className={clsx("px-2 py-1 transition-colors rounded hover:bg-gray-50", 
+                    (isMultiSelectMode ? (selectedStatusesMult.length === 4 && !selectedStatusesMult.includes('DELIVERED')) : selectedStatus === 'ACTIVE') 
+                    ? "text-purple-700 bg-purple-50" : "text-gray-500"
+                 )}
+               >
+                 قيد التنفيذ
+               </button>
+            </div>
+
+            {Object.entries(STATUS_LABELS).map(([key, label]) => {
+                const isSelected = isMultiSelectMode ? selectedStatusesMult.includes(key as OrderStatus) : selectedStatus === key;
+                
+                // Extract just the text color from STATUS_COLORS (e.g. text-blue-800)
+                const statusColor = STATUS_COLORS[key as OrderStatus].match(/text-\w+-\d+/)?.[0] || 'text-gray-700';
+
+                return (
+                    <button 
+                       key={key} 
+                       onClick={() => {
+                           if (isMultiSelectMode) toggleMultiselectStatus(key as OrderStatus);
+                           else { setSelectedStatus(key as OrderStatus); setShowFilterDropdown(false); }
+                       }} 
+                       className="w-full text-right px-4 py-2 hover:bg-gray-50 text-sm flex items-center gap-3 transition-colors outline-none"
+                    >
+                       {isMultiSelectMode ? (
+                          isSelected ? <CheckSquare className={clsx("w-4 h-4", statusColor)} /> : <Square className="w-4 h-4 text-gray-300"/>
+                       ) : (
+                          <div className={clsx("w-4 h-4 rounded-full border flex items-center justify-center transition-colors", isSelected ? STATUS_COLORS[key as OrderStatus].match(/bg-\w+-\d+/)?.[0] || "bg-purple-600" : "bg-white", isSelected ? STATUS_COLORS[key as OrderStatus].match(/border-\w+-\d+/)?.[0] || "border-purple-600" : "border-gray-300")}>
+                             {isSelected && <div className="w-1.5 h-1.5 bg-white rounded-full" />}
+                          </div>
+                       )}
+                       <span className={clsx("font-bold transition-colors", statusColor)}>{label}</span>
                     </button>
-                  );
-                })}
-              </>
-            ) : (
-              <>
-                <button onClick={() => { setSelectedStatus('ALL'); setShowFilterDropdown(false); }} className="w-full text-right px-4 py-2 hover:bg-gray-50 text-sm flex items-center justify-between">
-                  عرض الكل {selectedStatus === 'ALL' && <Check className="w-4 h-4 text-purple-600"/>}
-                </button>
-                <button onClick={() => { setSelectedStatus('ACTIVE'); setShowFilterDropdown(false); }} className="w-full text-right px-4 py-2 hover:bg-gray-50 text-sm flex items-center justify-between">
-                  قيد التنفيذ (غير مستلم) {selectedStatus === 'ACTIVE' && <Check className="w-4 h-4 text-purple-600"/>}
-                </button>
-                <div className="border-t border-gray-50 my-1"></div>
-                {Object.entries(STATUS_LABELS).map(([key, label]) => (
-                  <button key={key} onClick={() => { setSelectedStatus(key as OrderStatus); setShowFilterDropdown(false); }} className="w-full text-right px-4 py-2 hover:bg-gray-50 text-sm flex items-center justify-between">
-                    {label} {selectedStatus === key && <Check className="w-4 h-4 text-purple-600"/>}
-                  </button>
-                ))}
-              </>
-            )}
+                )
+            })}
           </div>
         )}
       </div>
@@ -193,8 +214,8 @@ export default function Home() {
                       <button 
                         onClick={(e) => handleCopy(e, order.orderNumber!, order.id)}
                         className={clsx(
-                          "text-[10px] font-mono font-medium px-1.5 py-0.5 rounded border transition-colors",
-                          copiedOrderId === order.id ? "bg-green-100 text-green-700 border-green-200" : "bg-gray-50/50 text-gray-400 border-gray-100 hover:bg-gray-100 hover:text-gray-600"
+                          "text-[10px] font-mono font-bold px-2 py-1 rounded-md border transition-colors",
+                          copiedOrderId === order.id ? "bg-green-100 text-green-700 border-green-200" : "bg-gray-100 text-gray-700 hover:bg-gray-200 border-gray-200"
                         )}
                         title="نسخ رقم الطلبية"
                       >

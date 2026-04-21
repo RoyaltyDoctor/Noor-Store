@@ -1,7 +1,7 @@
 import { useState, useMemo } from 'react';
 import { useStore } from '../store';
 import { Link } from 'react-router-dom';
-import { Users, Phone, MapPin, Plus, Edit2, Trash2, Search, Package, ChevronLeft, X, FileText } from 'lucide-react';
+import { Users, Phone, MapPin, Plus, Edit2, Trash2, Search, Package, ChevronLeft, ChevronDown, X, FileText } from 'lucide-react';
 import { format } from 'date-fns';
 import type { Customer } from '../types';
 import clsx from 'clsx';
@@ -43,7 +43,7 @@ export default function Customers() {
 
   const handleEdit = (e: React.MouseEvent, c: Customer) => {
     e.stopPropagation();
-    setFormData({ name: c.name, phone: c.phone, address: c.address, notes: c.notes || '' });
+    setFormData({ name: c.name, phone: c.phone || '', address: c.address || '', notes: c.notes || '' });
     setEditingId(c.id);
     setIsAdding(true);
     setShowExtraDetails(!!c.address || !!c.notes);
@@ -54,6 +54,11 @@ export default function Customers() {
     if (confirm('حذف العميل؟ سيتم حذف طلبياته أيضاً.')) {
       deleteCustomer(id);
     }
+  };
+
+  const openHistory = (e: React.MouseEvent, c: Customer) => {
+    e.stopPropagation();
+    setViewCustomerHistory(c);
   };
 
   const customerOrders = useMemo(() => {
@@ -91,11 +96,10 @@ export default function Customers() {
         <div className="bg-white p-4 rounded-2xl border-2 border-purple-200 shadow-sm space-y-3 mb-4">
           <div className="flex justify-between items-center mb-2 border-b border-purple-50 pb-2">
             <h3 className="font-bold text-purple-900 text-sm">{editingId ? 'تعديل العميل' : 'إضافة عميل جديد'}</h3>
-            {!showExtraDetails && (
-              <button onClick={() => setShowExtraDetails(true)} className="text-[10px] bg-purple-50 text-purple-600 font-bold px-2 py-1 flex items-center gap-1 rounded hover:bg-purple-100 transition-colors">
-                 إظهار التفاصيل (عنوان، ملاحظات)
-              </button>
-            )}
+            <button onClick={() => setShowExtraDetails(!showExtraDetails)} className="text-[10px] bg-purple-50 text-purple-600 font-bold px-2 py-1 flex items-center gap-1 rounded hover:bg-purple-100 transition-colors">
+               {showExtraDetails ? 'إخفاء التفاصيل' : 'إظهار التفاصيل (عنوان، ملاحظات)'}
+               <ChevronDown className={clsx("w-3 h-3 transition-transform", showExtraDetails && "rotate-180")} />
+            </button>
           </div>
           
           <div className="flex gap-2">
@@ -149,33 +153,43 @@ export default function Customers() {
              return (
               <div 
                 key={c.id} 
-                onClick={() => setViewCustomerHistory(c)}
-                className="bg-white p-4 rounded-2xl border border-gray-100 shadow-sm flex items-start justify-between cursor-pointer active:scale-[0.98] transition-all hover:border-purple-200 relative overflow-hidden"
+                onClick={(e) => { handleEdit(e, c); window.scrollTo({top: 0, behavior: 'smooth'}); }}
+                className="bg-white p-4 rounded-2xl border border-gray-100 shadow-sm flex flex-col cursor-pointer active:scale-[0.98] transition-all hover:border-purple-200 relative overflow-hidden"
               >
                 <div className="absolute top-0 bottom-0 right-0 w-1 bg-purple-100" />
-                <div className="space-y-2 pr-2">
-                  <h4 className="font-bold text-gray-900">{c.name}</h4>
-                  <div className="flex items-center text-[11px] text-gray-600 gap-2 flex-wrap">
-                    {c.phone && <span className="flex items-center font-mono bg-gray-50 px-2 py-0.5 rounded border border-gray-100"><Phone className="w-3 h-3 ml-1" /> {c.phone}</span>}
-                    {c.address && <span className="flex items-center gap-1 bg-gray-50 px-2 py-0.5 rounded border border-gray-100"><MapPin className="w-3 h-3" /> {c.address}</span>}
+                
+                <div className="flex justify-between items-start w-full pr-2">
+                  <h4 className="font-bold text-gray-900 leading-tight">{c.name}</h4>
+                  <div className="flex items-center gap-1 flex-shrink-0 mr-4" onClick={e => e.stopPropagation()}>
+                    <button onClick={(e) => handleEdit(e, c)} className="p-1.5 text-gray-400 bg-gray-50 hover:bg-gray-100 hover:text-gray-700 rounded-md transition-colors" title="تعديل">
+                      <Edit2 className="w-3.5 h-3.5" />
+                    </button>
+                    <button onClick={(e) => handleDelete(e, c.id)} className="p-1.5 text-gray-400 bg-gray-50 hover:bg-gray-100 hover:text-red-500 rounded-md transition-colors" title="حذف">
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </button>
                   </div>
-                  {c.notes && (
-                      <p className="text-[10px] text-yellow-700 bg-yellow-50 px-2 py-1 rounded border border-yellow-100 flex items-start gap-1 mt-1 max-w-[250px] leading-snug">
-                         <FileText className="w-3 h-3 flex-shrink-0 mt-0.5" /> {c.notes}
-                      </p>
-                  )}
                 </div>
                 
-                <div className="flex flex-col items-end gap-3 text-left">
-                  <span className={clsx("flex items-center gap-1 font-bold px-2 py-0.5 rounded-md border text-[10px] justify-end", ordCount > 0 ? "bg-purple-50 text-purple-700 border-purple-200" : "bg-gray-50 text-gray-400 border-gray-200")}>
-                      <Package className="w-3 h-3" /> {ordCount} طلبية
-                  </span>
-                  <div className="flex items-center gap-1 justify-end">
-                    <button onClick={(e) => handleEdit(e, c)} className="p-1.5 text-gray-400 hover:text-purple-600 hover:bg-purple-50 transition-colors rounded-lg">
-                      <Edit2 className="w-4 h-4" />
-                    </button>
-                    <button onClick={(e) => handleDelete(e, c.id)} className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 transition-colors rounded-lg">
-                      <Trash2 className="w-4 h-4" />
+                <div className="flex justify-between items-end w-full pr-2 mt-2 gap-2">
+                  <div className="flex flex-col gap-1.5 flex-1 min-w-0">
+                    <div className="flex items-center text-[11px] text-gray-600 gap-2 flex-wrap">
+                      {c.phone && <span className="flex items-center font-mono bg-gray-50 px-2 py-0.5 rounded border border-gray-100 whitespace-nowrap"><Phone className="w-3 h-3 ml-1" /> {c.phone}</span>}
+                      {c.address && <span className="flex items-center gap-1 bg-gray-50 px-2 py-0.5 rounded border border-gray-100 max-w-[150px] sm:max-w-xs truncate"><MapPin className="w-3 h-3 ml-1 flex-shrink-0" /> <span className="truncate">{c.address}</span></span>}
+                    </div>
+                    {c.notes && (
+                        <p className="text-[10px] text-yellow-700 bg-yellow-50 px-2 py-1 rounded border border-yellow-100 flex items-start gap-1 mt-1 leading-relaxed max-w-[95%]">
+                           <FileText className="w-3 h-3 flex-shrink-0 mt-0.5" /> {c.notes}
+                        </p>
+                    )}
+                  </div>
+                  
+                  <div className="flex-shrink-0 self-end" onClick={e => e.stopPropagation()}>
+                    <button 
+                       onClick={(e) => openHistory(e, c)}
+                       className={clsx("flex items-center gap-1 font-bold px-2 py-1 rounded-lg border text-[10px] transition-colors shadow-sm", ordCount > 0 ? "bg-purple-50 text-purple-700 border-purple-200 hover:bg-purple-100" : "bg-gray-50 text-gray-400 border-gray-200 hover:bg-gray-100")}
+                    >
+                        <Package className="w-3.5 h-3.5" /> 
+                        <span>{ordCount} طلبية</span>
                     </button>
                   </div>
                 </div>

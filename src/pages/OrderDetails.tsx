@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useStore } from '../store';
-import { ChevronRight, ExternalLink, Plus, Trash2, Camera, ReceiptText, CheckCircle2, Edit2, Copy, ChevronDown } from 'lucide-react';
+import { ChevronRight, ExternalLink, Plus, Trash2, Camera, ReceiptText, CheckCircle2, Edit2, Copy, ChevronDown, Check } from 'lucide-react';
 import { OrderStatus, STATUS_COLORS, STATUS_LABELS, Item } from '../types';
 import { v4 as uuidv4 } from 'uuid';
 import clsx from 'clsx';
@@ -19,7 +19,12 @@ export default function OrderDetails() {
   const [editingItemId, setEditingItemId] = useState<string | null>(null);
   const [newItem, setNewItem] = useState<Partial<Item>>({ quantity: 1, price: 0 });
   const [showMoreInfo, setShowMoreInfo] = useState(false);
+  
+  const [showQuantityDropdown, setShowQuantityDropdown] = useState(false);
+
   const [copiedOrderId, setCopiedOrderId] = useState<string | null>(null);
+  const [copiedSkuId, setCopiedSkuId] = useState<string | null>(null);
+  const [copiedUrlId, setCopiedUrlId] = useState<string | null>(null);
 
   if (!order) return <div className="p-4 text-center">الطلب غير موجود</div>;
 
@@ -38,6 +43,7 @@ export default function OrderDetails() {
     setEditingItemId(null);
     setAddingItem(true);
     setShowMoreInfo(false);
+    setShowQuantityDropdown(false);
   };
 
   const openEditForm = (item: Item) => {
@@ -45,6 +51,7 @@ export default function OrderDetails() {
     setEditingItemId(item.id);
     setAddingItem(false);
     setShowMoreInfo(!!item.url || !!item.sku || !!item.image);
+    setShowQuantityDropdown(false);
   };
 
   const closeForm = () => {
@@ -52,6 +59,7 @@ export default function OrderDetails() {
     setEditingItemId(null);
     setNewItem({ quantity: 1, price: 0 });
     setShowMoreInfo(false);
+    setShowQuantityDropdown(false);
   };
 
   const handleSaveItem = () => {
@@ -69,7 +77,7 @@ export default function OrderDetails() {
         price: Number(newItem.price),
         quantity: Number(newItem.quantity) || 1,
       } as Item;
-      updateOrder(order.id, { items: [item, ...order.items] }); // Add new item to the top
+      updateOrder(order.id, { items: [item, ...order.items] });
     }
     closeForm();
   };
@@ -106,23 +114,47 @@ export default function OrderDetails() {
     }
   };
 
+  const handleCopySku = (sku: string, id: string) => {
+    navigator.clipboard.writeText(sku);
+    setCopiedSkuId(id);
+    setTimeout(() => setCopiedSkuId(null), 1500);
+  };
+
+  const handleCopyUrl = (url: string, id: string) => {
+    navigator.clipboard.writeText(url);
+    setCopiedUrlId(id);
+    setTimeout(() => setCopiedUrlId(null), 1500);
+  };
+
   return (
     <div className="bg-gray-50 min-h-full pb-8 relative">
       {/* Top Header Fixed - z-40 to prevent overlaps */}
       <div className="sticky top-0 bg-white border-b border-gray-200 z-40 px-4 py-3 shadow-sm flex items-center justify-between">
-        <button onClick={() => navigate(-1)} className="p-2 -ml-2 text-gray-900 active:bg-gray-100 rounded-full transition-colors">
+        <button onClick={() => navigate('/')} className="p-2 -ml-2 text-gray-900 active:bg-gray-100 rounded-full transition-colors">
           <ChevronRight className="w-6 h-6" />
         </button>
         <div className="flex-1 text-center truncate px-2">
           <h2 className="font-bold text-gray-900 inline-block">طلبية {customer?.name}</h2>
         </div>
         <div className="flex items-center gap-2">
+          {order.orderNumber && (
+            <button 
+              onClick={handleCopyOrderNumber}
+              className={clsx(
+                "text-[10px] font-mono font-bold px-2 py-1.5 rounded-lg border transition-colors shadow-sm",
+                copiedOrderId === order.id ? "bg-green-100 text-green-700 border-green-200" : "bg-gray-100 text-gray-700 hover:bg-gray-200 border-gray-200"
+              )}
+              title="نسخ رقم الطلبية"
+            >
+              #{order.orderNumber}
+            </button>
+          )}
           {customer?.phone && (
-            <a href={`https://wa.me/${customer.phone.replace(/[^0-9]/g, '')}`} target="_blank" rel="noreferrer" className="text-green-600 bg-green-50 px-2 py-1.5 rounded-full font-bold text-[10px]" title="تواصل واتساب">
+            <a href={`https://wa.me/${customer.phone.replace(/[^0-9]/g, '')}`} target="_blank" rel="noreferrer" className="text-green-600 bg-green-50 px-2 py-1.5 rounded-xl font-bold text-[10px]" title="تواصل واتساب">
               واتساب
             </a>
           )}
-          <button onClick={handleDeleteOrder} className="text-red-500 bg-red-50 p-1.5 rounded-full">
+          <button onClick={handleDeleteOrder} className="text-red-500 bg-red-50 p-1.5 rounded-xl">
             <Trash2 className="w-4 h-4" />
           </button>
         </div>
@@ -135,18 +167,6 @@ export default function OrderDetails() {
           <div className="flex justify-between items-center mb-4">
             <h3 className="font-bold text-gray-900 text-sm">حالة الطلبية</h3>
             <div className="flex items-center gap-2">
-              {order.orderNumber && (
-                <button 
-                  onClick={handleCopyOrderNumber}
-                  className={clsx(
-                    "text-[10px] font-mono font-medium px-1.5 py-0.5 rounded border transition-colors shadow-sm",
-                    copiedOrderId === order.id ? "bg-green-100 text-green-700 border-green-200" : "bg-gray-50 text-gray-400 hover:bg-gray-100 border-gray-100 uppercase"
-                  )}
-                  title="نسخ رقم الطلبية"
-                >
-                  #{order.orderNumber}
-                </button>
-              )}
               <span className={clsx("px-3 py-1 rounded-lg text-xs font-bold border inline-block", STATUS_COLORS[order.status])}>
                 {STATUS_LABELS[order.status]}
               </span>
@@ -215,7 +235,9 @@ export default function OrderDetails() {
               </button>
             ) : (
               <div className="bg-white p-4 rounded-2xl border-2 border-purple-200 shadow-sm space-y-3">
-                <h4 className="font-bold text-sm text-purple-900 border-b pb-2 mb-3">{editingItemId ? 'تعديل القطعة' : 'إضافة قطعة جديدة'}</h4>
+                <div className="flex justify-between items-center mb-1">
+                  <h4 className="font-bold text-sm text-purple-900 border-b pb-2 mb-2">{editingItemId ? 'تعديل القطعة' : 'إضافة قطعة جديدة'}</h4>
+                </div>
                 
                 {/* Row 1: Name and SKU */}
                 <div className="flex gap-2 w-full">
@@ -245,16 +267,28 @@ export default function OrderDetails() {
                     className="flex-[1.2] min-w-0 w-0 bg-gray-50 border border-gray-200 rounded-xl px-2 py-2 text-sm focus:ring-2 focus:ring-purple-500 outline-none placeholder:text-xs"
                   />
                   <div className="relative flex-1 min-w-0 w-0">
-                    <select 
-                      value={newItem.quantity === 0 ? 1 : newItem.quantity} 
-                      onChange={e => setNewItem({...newItem, quantity: Number(e.target.value)})}
-                      className="w-full bg-gray-50 border border-gray-200 rounded-xl appearance-none px-2 py-2 pl-6 text-sm focus:ring-2 focus:ring-purple-500 outline-none"
+                    <button 
+                      type="button" 
+                      onClick={() => setShowQuantityDropdown(!showQuantityDropdown)} 
+                      className="w-full bg-gray-50 border border-gray-200 rounded-xl px-2 py-2 text-sm focus:ring-2 focus:ring-purple-500 outline-none flex justify-between items-center text-gray-700"
                     >
-                      {Array.from({ length: 20 }, (_, i) => i + 1).map(num => (
-                         <option key={num} value={num}>{num}</option>
-                      ))}
-                    </select>
-                    <ChevronDown className="absolute left-2 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
+                      <span className="truncate flex-1 text-center font-bold">{newItem.quantity || 1}</span>
+                      <ChevronDown className="w-3 h-3 text-gray-400 flex-shrink-0" />
+                    </button>
+                    {showQuantityDropdown && (
+                      <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-200 rounded-xl shadow-lg z-50 max-h-40 overflow-y-auto no-scrollbar">
+                        {Array.from({ length: 20 }, (_, i) => i + 1).map(num => (
+                          <button 
+                             type="button" 
+                             key={num} 
+                             onClick={() => { setNewItem({...newItem, quantity: num}); setShowQuantityDropdown(false); }} 
+                             className="w-full text-center py-2 hover:bg-purple-50 text-sm border-b border-gray-50 last:border-0 transition-colors"
+                          >
+                             {num}
+                          </button>
+                        ))}
+                      </div>
+                    )}
                   </div>
                 </div>
 
@@ -336,21 +370,29 @@ export default function OrderDetails() {
                       {item.color && <span className="bg-gray-50 border border-gray-100 px-1.5 py-0.5 rounded shadow-sm">ل: {item.color}</span>}
                       {item.sku && (
                         <div className="flex items-center bg-gray-50 border border-gray-100 rounded shadow-sm overflow-hidden" dir="ltr">
-                          <button onClick={() => navigator.clipboard.writeText(item.sku!)} className="px-1.5 py-0.5 text-gray-400 hover:bg-gray-200 hover:text-gray-700 transition-colors border-r border-gray-100" title="نسخ الكود">
-                            <Copy className="w-3 h-3" />
+                          <button 
+                             onClick={() => handleCopySku(item.sku!, item.id)} 
+                             className={clsx("px-1.5 py-0.5 transition-colors border-r border-gray-100 flex items-center justify-center h-full", copiedSkuId === item.id ? "bg-green-100 text-green-700" : "text-gray-400 hover:bg-gray-200 hover:text-gray-700")} 
+                             title="نسخ الكود"
+                          >
+                            {copiedSkuId === item.id ? <Check className="w-3 h-3" /> : <Copy className="w-3 h-3" />}
                           </button>
-                           <span className="px-1.5 py-0.5 font-mono max-w-[80px] truncate">{item.sku}</span>
+                          <span className="px-1.5 py-0.5 font-mono max-w-[80px] truncate">{item.sku}</span>
                         </div>
                       )}
                     </div>
                     <div className="mt-3 flex items-center justify-between">
                       <div className="text-sm font-bold text-gray-900">{item.price} ر.س <span className="font-normal text-xs text-gray-500">×{item.quantity}</span></div>
                       {item.url && (
-                        <div className="flex items-center rtl:flex-row-reverse border border-blue-100 rounded bg-blue-50/50 shadow-sm overflow-hidden">
-                          <button onClick={() => navigator.clipboard.writeText(item.url!)} className="px-2 py-1.5 text-blue-400 hover:bg-blue-100 hover:text-blue-600 transition-colors border-r border-blue-100" title="نسخ الرابط">
-                            <Copy className="w-3 h-3" />
+                        <div className="flex items-center rtl:flex-row-reverse border border-blue-100 rounded bg-blue-50/50 shadow-sm overflow-hidden text-right h-6">
+                          <button 
+                             onClick={() => handleCopyUrl(item.url!, item.id)} 
+                             className={clsx("px-2 py-1 transition-colors border-r border-blue-100 flex items-center justify-center h-full", copiedUrlId === item.id ? "bg-green-100 text-green-700" : "text-blue-400 hover:bg-blue-100 hover:text-blue-600")} 
+                             title="نسخ الرابط"
+                          >
+                            {copiedUrlId === item.id ? <Check className="w-3 h-3" /> : <Copy className="w-3 h-3" />}
                           </button>
-                          <a href={item.url} target="_blank" rel="noreferrer" className="text-blue-600 hover:text-blue-800 px-2 py-1 flex items-center gap-1 text-[10px] font-bold">
+                          <a href={item.url} target="_blank" rel="noreferrer" className="text-blue-600 hover:bg-blue-100/50 px-2 flex items-center gap-1 text-[10px] font-bold h-full">
                             الرابط <ExternalLink className="w-2.5 h-2.5" />
                           </a>
                         </div>
