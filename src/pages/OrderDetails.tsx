@@ -157,14 +157,13 @@ export default function OrderDetails() {
         </div>
         <div className="flex items-center gap-2">
           {customer?.phone && (
-            <div dir="ltr" className="flex items-center gap-1.5 bg-gray-50 border border-gray-100 px-2 py-1 rounded-lg text-gray-500 font-mono tracking-wider">
+            <div className="flex items-center gap-1.5 bg-gray-50 border border-gray-100 px-2 py-1 rounded-lg text-gray-500 font-mono tracking-wider dir-ltr">
               <a 
                 href={`tel:${customer.phone.replace(/[^0-9+]/g, '')}`} 
-                className="hover:text-blue-600 transition-colors flex items-center justify-center p-0.5 gap-1.5"
+                className="hover:text-blue-600 transition-colors flex items-center justify-center p-0.5"
                 title="اتصال"
               >
-                <Phone className="w-4 h-4" /> 
-                <span className="text-xs">{customer.phone}</span>
+                <Phone className="w-4 h-4" />
               </a>
               <div className="w-px h-4 bg-gray-300"></div>
               <a 
