@@ -6,6 +6,7 @@ import { OrderStatus, STATUS_COLORS, STATUS_LABELS, Item } from '../types';
 import { v4 as uuidv4 } from 'uuid';
 import clsx from 'clsx';
 import { motion, AnimatePresence } from 'motion/react';
+import { TextFitter } from '../components/TextFitter';
 
 export default function OrderDetails() {
   const { id } = useParams<{ id: string }>();
@@ -150,10 +151,12 @@ export default function OrderDetails() {
         <div className="flex-1 min-w-0 text-center items-center justify-center flex px-2 overflow-hidden">
           <button 
              onClick={() => setShowCustomerModal(true)} 
-             className="font-bold text-gray-900 text-base inline-flex items-center hover:text-purple-600 transition-colors bg-gray-50 px-3 py-1 rounded-full border border-gray-100 shadow-sm active:scale-95 max-w-full"
+             className="font-bold text-gray-900 text-base flex flex-1 min-w-0 max-w-full items-center justify-center hover:text-purple-600 transition-colors bg-gray-50 px-3 py-1 rounded-full border border-gray-100 shadow-sm active:scale-95"
           >
-             <span className="flex-shrink-0 ml-1">طلبية</span>
-             <span className="text-purple-700 truncate min-w-0 max-w-[150px] sm:max-w-[200px]" title={customer?.name}>{customer?.name}</span>
+             <TextFitter origin="center">
+                <span className="flex-shrink-0 ml-1">طلبية</span>
+                <span className="text-purple-700">{customer?.name}</span>
+             </TextFitter>
           </button>
         </div>
         <div className="flex items-center gap-2 flex-shrink-0">

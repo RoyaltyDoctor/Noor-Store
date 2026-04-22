@@ -5,6 +5,7 @@ import { Plus, Search, Filter, Phone, Package, ChevronLeft, X, UserPlus, CheckSq
 import { STATUS_LABELS, STATUS_COLORS, OrderStatus, Order } from '../types';
 import clsx from 'clsx';
 import { format, isToday, isThisWeek, isThisMonth, startOfDay, endOfDay } from 'date-fns';
+import { TextFitter } from '../components/TextFitter';
 
 export default function Home() {
   const { orders, customers, addOrder, addCustomer } = useStore();
@@ -336,8 +337,10 @@ export default function Home() {
                 className="block cursor-pointer bg-white p-4 rounded-2xl border border-gray-100 shadow-sm active:scale-[0.98] transition-transform"
               >
                 <div className="flex justify-between items-start mb-3 gap-3">
-                  <div className="min-w-0 flex-1">
-                    <h3 className="font-bold text-gray-900 truncate leading-tight" title={customer?.name || 'عميل غير معروف'}>{customer?.name || 'عميل غير معروف'}</h3>
+                  <div className="min-w-0 flex-1 flex">
+                    <TextFitter origin="right">
+                      <h3 className="font-bold text-gray-900 leading-tight block">{customer?.name || 'عميل غير معروف'}</h3>
+                    </TextFitter>
                   </div>
                   <div className="flex items-center gap-2 flex-shrink-0">
                     {order.orderNumber && (
