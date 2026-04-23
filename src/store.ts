@@ -4,6 +4,23 @@ import { get, set, del } from 'idb-keyval';
 import { v4 as uuidv4 } from 'uuid';
 import { Customer, Order, OrderStatus } from './types';
 
+import { setDoc, doc, deleteDoc } from 'firebase/firestore';
+import { db, auth } from './firebase';
+
+const pushToFb = (collectionName: string, id: string, data: any) => {
+  const user = auth.currentUser;
+  if (user) {
+    setDoc(doc(db, collectionName, id), { ...data, userId: user.uid }, { merge: true }).catch(console.error);
+  }
+};
+
+const deleteFromFb = (collectionName: string, id: string) => {
+  const user = auth.currentUser;
+  if (user) {
+    deleteDoc(doc(db, collectionName, id)).catch(console.error);
+  }
+};
+
 // Custom storage engine using IndexedDB
 const idbStorage: StateStorage = {
   getItem: async (name: string): Promise<string | null> => {
@@ -93,22 +110,41 @@ export const useStore = create<AppState>()(
 
       addCustomer: (data) => {
         const id = uuidv4();
+        const newCustomer = { ...data, id, updatedAt: Date.now() };
         set((state) => ({
-          customers: [...state.customers, { ...data, id }]
+          customers: [...state.customers, newCustomer]
         }));
+        pushToFb('customers', id, newCustomer);
         return id;
       },
 
-      updateCustomer: (id, data) => set((state) => ({
-        customers: state.customers.map((c) => (c.id === id ? { ...c, ...data } : c))
-      })),
+      updateCustomer: (id, data) => set((state) => {
+        const updatedCustomers = state.customers.map((c) => {
+          if (c.id === id) {
+             const updated = { ...c, ...data, updatedAt: Date.now() };
+             pushToFb('customers', id, updated);
+             return updated;
+          }
+          return c;
+        });
+        return { customers: updatedCustomers };
+      }),
 
-      deleteCustomer: (id) => set((state) => ({
-        customers: state.customers.filter((c) => c.id !== id),
-        orders: state.orders.filter((o) => o.customerId !== id)
-        // Ignoring associated orders being deleted here for the deletedOrders tracking, 
-        // as typically deleting an order directly is what they mean. If needed we could map them.
-      })),
+      deleteCustomer: (id) => set((state) => {
+        deleteFromFb('customers', id);
+        
+        // Handle associated orders deletion logic for cloud
+        const ordersToDelete = state.orders.filter((o) => o.customerId === id);
+        ordersToDelete.forEach(o => {
+           deleteFromFb('orders', o.id);
+           if (o.orderNumber) pushToFb('deletedOrders', o.id, { orderNumber: o.orderNumber, deletedAt: Date.now() });
+        });
+
+        return {
+          customers: state.customers.filter((c) => c.id !== id),
+          orders: state.orders.filter((o) => o.customerId !== id)
+        };
+      }),
 
       addOrder: (customerId) => {
         const id = uuidv4();
@@ -149,7 +185,8 @@ export const useStore = create<AppState>()(
           shippingFee: 0,
           deposit: 0,
           dates: { created: Date.now() },
-          notes: {}
+          notes: {},
+          updatedAt: Date.now()
         };
         
         set((state) => ({
@@ -157,18 +194,31 @@ export const useStore = create<AppState>()(
           deletedOrders: activeReservations
         }));
         
+        pushToFb('orders', id, newOrder);
+        
         return id;
       },
 
-      updateOrder: (id, data) => set((state) => ({
-        orders: state.orders.map((o) => (o.id === id ? { ...o, ...data } : o))
-      })),
+      updateOrder: (id, data) => set((state) => {
+        const updatedOrders = state.orders.map((o) => {
+           if (o.id === id) {
+              const updated = { ...o, ...data, updatedAt: Date.now() };
+              pushToFb('orders', id, updated);
+              return updated;
+           }
+           return o;
+        });
+        return { orders: updatedOrders };
+      }),
 
       deleteOrder: (id) => set((state) => {
         const orderToDelete = state.orders.find(o => o.id === id);
         const newDeletedOrders = state.deletedOrders || [];
         
+        deleteFromFb('orders', id);
+
         if (orderToDelete && orderToDelete.orderNumber) {
+          pushToFb('deletedOrders', id, { orderNumber: orderToDelete.orderNumber, deletedAt: Date.now() });
           return {
             orders: state.orders.filter((o) => o.id !== id),
             deletedOrders: [...newDeletedOrders, { orderNumber: orderToDelete.orderNumber, deletedAt: Date.now() }]
@@ -180,18 +230,21 @@ export const useStore = create<AppState>()(
         };
       }),
 
-      updateOrderStatus: (id, status) => set((state) => ({
-        orders: state.orders.map((o) => {
+      updateOrderStatus: (id, status) => set((state) => {
+        const updatedOrders = state.orders.map((o) => {
           if (o.id === id) {
-            const updates: Partial<Order> = { status };
+            const updates: Partial<Order> = { status, updatedAt: Date.now() };
             if (status === 'ORDERED' && !o.dates.ordered) {
                updates.dates = { ...o.dates, ordered: Date.now() };
             }
-            return { ...o, ...updates };
+            const updated = { ...o, ...updates };
+            pushToFb('orders', id, updated);
+            return updated;
           }
           return o;
-        })
-      }))
+        });
+        return { orders: updatedOrders };
+      })
     }),
     {
       name: 'noor-store-storage',

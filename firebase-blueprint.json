@@ -1,0 +1,83 @@
+{
+  "entities": {
+    "User": {
+      "title": "User",
+      "description": "User profile with email",
+      "type": "object",
+      "properties": {
+        "email": {
+          "type": "string"
+        },
+        "createdAt": {
+          "type": "number"
+        }
+      },
+      "required": ["email", "createdAt"]
+    },
+    "Customer": {
+      "title": "Customer",
+      "description": "A customer of the store",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "name": { "type": "string" },
+        "phone": { "type": "string" },
+        "address": { "type": "string" },
+        "notes": { "type": "string" },
+        "createdAt": { "type": "number" },
+        "updatedAt": { "type": "number" }
+      },
+      "required": ["userId", "name", "createdAt", "updatedAt"]
+    },
+    "Order": {
+      "title": "Order",
+      "description": "An order for a customer",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "customerId": { "type": "string" },
+        "orderNumber": { "type": "string" },
+        "status": { "type": "string" },
+        "items": { "type": "array" },
+        "serviceFee": { "type": "number" },
+        "shippingFee": { "type": "number" },
+        "deposit": { "type": "number" },
+        "trackingNumber": { "type": "string" },
+        "dates": { "type": "object" },
+        "notes": { "type": "object" },
+        "createdAt": { "type": "number" },
+        "updatedAt": { "type": "number" }
+      },
+      "required": ["userId", "customerId", "status", "createdAt", "updatedAt"]
+    },
+    "DeletedOrder": {
+      "title": "Deleted Order",
+      "description": "Log of deleted orders to track numbers",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "orderNumber": { "type": "string" },
+        "deletedAt": { "type": "number" }
+      },
+      "required": ["userId", "orderNumber", "deletedAt"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": { "$ref": "#/entities/User" },
+      "description": "User profiles"
+    },
+    "/customers/{customerId}": {
+      "schema": { "$ref": "#/entities/Customer" },
+      "description": "Store customers"
+    },
+    "/orders/{orderId}": {
+      "schema": { "$ref": "#/entities/Order" },
+      "description": "Store orders"
+    },
+    "/deletedOrders/{deletedOrderId}": {
+      "schema": { "$ref": "#/entities/DeletedOrder" },
+      "description": "Log of deleted order numbers"
+    }
+  }
+}

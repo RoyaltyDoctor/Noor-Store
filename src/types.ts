@@ -22,6 +22,7 @@ export interface Customer {
   phone: string;
   address: string;
   notes?: string;
+  updatedAt?: number;
 }
 
 export interface Item {
@@ -55,4 +56,5 @@ export interface Order {
     customerNotes?: string;
     internalNotes?: string;
   };
+  updatedAt?: number;
 }
