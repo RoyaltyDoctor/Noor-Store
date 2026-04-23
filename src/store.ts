@@ -99,6 +99,9 @@ interface AppState {
   updateOrder: (id: string, data: Partial<Order>) => void;
   deleteOrder: (id: string) => void;
   updateOrderStatus: (id: string, status: OrderStatus) => void;
+  
+  // Backup Merge
+  mergeBackup: (backupData: { customers?: Customer[]; orders?: Order[]; deletedOrders?: { orderNumber: string; deletedAt: number }[] }) => void;
 }
 
 export const useStore = create<AppState>()(
@@ -244,6 +247,47 @@ export const useStore = create<AppState>()(
           return o;
         });
         return { orders: updatedOrders };
+      }),
+
+      mergeBackup: (backupData) => set((state) => {
+          let updatedCustomers = [...state.customers];
+          let updatedOrders = [...state.orders];
+          
+          const { customers = [], orders = [] } = backupData;
+
+          // Merge Customers
+          customers.forEach(importedC => {
+            const index = updatedCustomers.findIndex(c => c.id === importedC.id);
+            if (index === -1) {
+              updatedCustomers.push(importedC);
+              pushToFb('customers', importedC.id, importedC);
+            } else {
+              const currentT = updatedCustomers[index].updatedAt || 0;
+              const importedT = importedC.updatedAt || 0;
+              if (importedT > currentT) {
+                 updatedCustomers[index] = importedC;
+                 pushToFb('customers', importedC.id, importedC);
+              }
+            }
+          });
+
+          // Merge Orders
+          orders.forEach(importedO => {
+            const index = updatedOrders.findIndex(o => o.id === importedO.id);
+            if (index === -1) {
+              updatedOrders.push(importedO);
+              pushToFb('orders', importedO.id, importedO);
+            } else {
+              const currentT = updatedOrders[index].updatedAt || 0;
+              const importedT = importedO.updatedAt || 0;
+              if (importedT > currentT) {
+                 updatedOrders[index] = importedO;
+                 pushToFb('orders', importedO.id, importedO);
+              }
+            }
+          });
+          
+          return { customers: updatedCustomers, orders: updatedOrders };
       })
     }),
     {

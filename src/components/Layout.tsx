@@ -1,9 +1,10 @@
 import { Routes, Route, NavLink, useNavigate } from 'react-router-dom';
-import { Home, Users, Store, BarChart3, Cloud, CheckCircle2, UserCircle } from 'lucide-react';
+import { Home, Users, Store, BarChart3, Cloud, CheckCircle2, UserCircle, Settings as SettingsIcon } from 'lucide-react';
 import HomeRoute from '../pages/Home';
 import CustomersRoute from '../pages/Customers';
 import OrderDetailsRoute from '../pages/OrderDetails';
 import ReportsRoute from '../pages/Reports';
+import SettingsRoute from '../pages/Settings';
 import { useStore } from '../store';
 import { useState, useEffect } from 'react';
 import { runInitialSync, startRealtimeSync } from '../sync';
@@ -110,6 +111,7 @@ export default function Layout() {
             <Route path="/customers" element={<CustomersRoute />} />
             <Route path="/reports" element={<ReportsRoute />} />
             <Route path="/order/:id" element={<OrderDetailsRoute />} />
+            <Route path="/settings" element={<SettingsRoute />} />
           </Routes>
         </main>
 
@@ -149,6 +151,18 @@ export default function Layout() {
           >
             <BarChart3 className="w-6 h-6" />
             <span className="text-[10px] font-medium">التقارير</span>
+          </NavLink>
+
+          <NavLink
+            to="/settings"
+            className={({ isActive }) =>
+              `flex flex-col items-center gap-1 ${
+                isActive ? 'text-purple-600' : 'text-gray-400 hover:text-gray-600'
+              }`
+            }
+          >
+            <SettingsIcon className="w-6 h-6" />
+            <span className="text-[10px] font-medium">الإعدادات</span>
           </NavLink>
         </nav>
 
