@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { DownloadCloud, UploadCloud, FileJson, AlertCircle, CheckCircle2, Info, X } from 'lucide-react';
 import { useStore } from '../store';
 import { format } from 'date-fns';
@@ -14,25 +14,37 @@ export default function Settings() {
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
   const [pendingBackup, setPendingBackup] = useState<any>(null);
 
+  // Export Options state
+  const [exportOptions, setExportOptions] = useState({ customers: true, orders: true });
+  // Import Options state
+  const [importOptions, setImportOptions] = useState({ customers: true, orders: true });
+
   const handleExport = () => {
-    // Get the current state
+    if (!exportOptions.customers && !exportOptions.orders) {
+      alert("الرجاء تحديد نوع واحد على الأقل من البيانات للتصدير!");
+      return;
+    }
+
     const { customers, orders, deletedOrders } = store;
     const backupData = {
       version: 1,
       exportedAt: Date.now(),
-      customers,
-      orders,
-      deletedOrders
+      customers: exportOptions.customers ? customers : [],
+      orders: exportOptions.orders ? orders : [],
+      deletedOrders: exportOptions.orders ? deletedOrders : []
     };
 
     const jsonString = JSON.stringify(backupData, null, 2);
     const blob = new Blob([jsonString], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
     
-    // Create an anchor tag to trigger download
+    let fileNameParts = [];
+    if (exportOptions.customers) fileNameParts.push('Customers');
+    if (exportOptions.orders) fileNameParts.push('Orders');
+    
     const a = document.createElement('a');
     a.href = url;
-    a.download = `Noor-Store-Backup-${format(new Date(), 'yyyy-MM-dd-HH-mm')}.json`;
+    a.download = `Noor-Store-${fileNameParts.join('-')}-${format(new Date(), 'yyyy-MM-dd-HH-mm')}.json`;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
@@ -52,13 +64,15 @@ export default function Settings() {
         const jsonContent = event.target?.result as string;
         const backupData = JSON.parse(jsonContent);
 
-        // Basic structural check
         if (typeof backupData !== 'object' || (!backupData.customers && !backupData.orders)) {
            throw new Error("ملف النسخة الاحتياطية غير صالح أو تالف");
         }
         
-        // Show confirmation dialog instead of merging immediately
         setPendingBackup(backupData);
+        setImportOptions({
+          customers: (backupData.customers?.length || 0) > 0,
+          orders: (backupData.orders?.length || 0) > 0
+        });
         setShowConfirmDialog(true);
         
       } catch (err) {
@@ -68,7 +82,6 @@ export default function Settings() {
         setTimeout(() => setImportStatus('idle'), 4000);
       }
       
-      // Reset input unconditionally so user can select the same file again if needed
       if (fileInputRef.current) {
          fileInputRef.current.value = '';
       }
@@ -86,15 +99,43 @@ export default function Settings() {
 
   const confirmImport = () => {
     if (!pendingBackup) return;
+    if (!importOptions.customers && !importOptions.orders) {
+      alert("الرجاء تحديد خيار واحد على الأقل للاستيراد!");
+      return;
+    }
     
     setShowConfirmDialog(false);
     setImportStatus('importing');
     
     try {
+      let customersToMerge = importOptions.customers ? (pendingBackup.customers || []) : [];
+      const ordersToMerge = importOptions.orders ? (pendingBackup.orders || []) : [];
+      const deletedOrdersToMerge = importOptions.orders ? (pendingBackup.deletedOrders || []) : [];
+
+      // Smart Dependency Resolution: 
+      // If user imports orders without customers, we MUST resolve missing customers 
+      // to avoid orphaned orders crashing the app.
+      if (importOptions.orders && !importOptions.customers && ordersToMerge.length > 0) {
+        const currentCustomerIds = new Set(store.customers.map(c => c.id));
+        const missingCustomerIds = new Set<string>();
+
+        ordersToMerge.forEach((o: any) => {
+          if (!currentCustomerIds.has(o.customerId)) {
+            missingCustomerIds.add(o.customerId);
+          }
+        });
+
+        if (missingCustomerIds.size > 0) {
+          // Rescue the required customers from the backup file
+          const requiredCustomers = (pendingBackup.customers || []).filter((c: any) => missingCustomerIds.has(c.id));
+          customersToMerge = [...customersToMerge, ...requiredCustomers];
+        }
+      }
+
       store.mergeBackup({
-        customers: pendingBackup.customers || [],
-        orders: pendingBackup.orders || [],
-        deletedOrders: pendingBackup.deletedOrders || []
+        customers: customersToMerge,
+        orders: ordersToMerge,
+        deletedOrders: deletedOrdersToMerge
       });
       
       setImportStatus('success');
@@ -127,26 +168,49 @@ export default function Settings() {
             </div>
             
             <div className="p-5 space-y-4">
-              <div className="bg-purple-50 text-purple-900 p-4 rounded-xl border border-purple-100/50 space-y-2">
-                <h4 className="font-bold text-sm text-purple-800 mb-3 flex items-center gap-2">
+              <div className="bg-purple-50 text-purple-900 p-4 rounded-xl border border-purple-100/50 space-y-3">
+                <h4 className="font-bold text-sm text-purple-800 flex items-center gap-2">
                   <FileJson className="w-4 h-4" />
-                  تفاصيل الملف المرفوع
+                  تفاصيل الملف المرفوع وتحديد الاستيراد
                 </h4>
-                <div className="flex justify-between text-sm">
-                  <span className="text-purple-700">تاريخ النسخة:</span>
-                  <span className="font-semibold text-left" dir="ltr">
+                
+                <div className="text-sm border-b border-purple-100 pb-2 mb-2">
+                  <span className="text-purple-700 block mb-1">تاريخ النسخة:</span>
+                  <span className="font-semibold" dir="ltr">
                     {pendingBackup.exportedAt 
                       ? format(new Date(pendingBackup.exportedAt), "dd MMM yyyy - hh:mm a", { locale: ar })
                       : 'غير متوفر'}
                   </span>
                 </div>
-                <div className="flex justify-between text-sm">
-                  <span className="text-purple-700">عدد العملاء:</span>
-                  <span className="font-bold font-mono">{pendingBackup.customers?.length || 0}</span>
-                </div>
-                <div className="flex justify-between text-sm">
-                  <span className="text-purple-700">عدد الطلبيات:</span>
-                  <span className="font-bold font-mono">{pendingBackup.orders?.length || 0}</span>
+
+                <div className="space-y-2 pt-1">
+                  <label className={`flex justify-between text-sm items-center cursor-pointer p-2 rounded-lg border ${importOptions.customers ? 'bg-white border-purple-200 shadow-sm' : 'border-transparent opacity-70 hover:bg-purple-100/50'}`}>
+                     <div className="flex items-center gap-2">
+                        <input 
+                           type="checkbox" 
+                           checked={importOptions.customers} 
+                           onChange={(e) => setImportOptions(p => ({ ...p, customers: e.target.checked }))}
+                           disabled={!(pendingBackup.customers?.length > 0)}
+                           className="rounded text-purple-600 focus:ring-purple-500 w-4 h-4"
+                        />
+                        <span className="font-medium text-purple-900">سجل العملاء</span>
+                     </div>
+                     <span className="font-bold font-mono">{pendingBackup.customers?.length || 0}</span>
+                  </label>
+
+                  <label className={`flex justify-between text-sm items-center cursor-pointer p-2 rounded-lg border ${importOptions.orders ? 'bg-white border-purple-200 shadow-sm' : 'border-transparent opacity-70 hover:bg-purple-100/50'}`}>
+                     <div className="flex items-center gap-2">
+                        <input 
+                           type="checkbox" 
+                           checked={importOptions.orders}
+                           onChange={(e) => setImportOptions(p => ({ ...p, orders: e.target.checked }))}
+                           disabled={!(pendingBackup.orders?.length > 0)}
+                           className="rounded text-purple-600 focus:ring-purple-500 w-4 h-4"
+                        />
+                        <span className="font-medium text-purple-900">سجل الطلبيات</span>
+                     </div>
+                     <span className="font-bold font-mono">{pendingBackup.orders?.length || 0}</span>
+                  </label>
                 </div>
               </div>
 
@@ -169,9 +233,19 @@ export default function Settings() {
                 <Info className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" />
                 <p className="leading-relaxed">
                   <strong className="block mb-1">كيف يعمل الدمج الذكي؟</strong>
-                  سيتم دمج البيانات المرفوعة مع الحالية. النظام سيحتفظ تلقائياً بأحدث تعديل لأي طلبية مكررة. لن تفقد بياناتك الجديدة.
+                  سيتم دمج البيانات المرفوعة مع الحالية. النظام سيحتفظ تلقائياً بأحدث تعديل لأي طلبية أو عميل مكرر. لن تفقد بياناتك الجديدة.
                 </p>
               </div>
+
+              {importOptions.orders && !importOptions.customers && (
+                <div className="flex gap-2.5 items-start bg-amber-50 text-amber-800 p-3.5 rounded-lg border border-amber-200 text-xs animate-in fade-in">
+                  <AlertCircle className="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" />
+                  <p className="leading-relaxed">
+                    <strong className="block mb-1">تنبيه ذكي (استيراد طلبيات فقط)</strong>
+                    لضمان عدم حدوث مشاكل، سيقوم النظام تلقائياً بالبحث عن أي "عميل غير مسجل لديك" ولكنه مرتبط بهذه الطلبيات، وسيتم استرداد بيانات هذا العميل فقط بصمت لتجنب تلف البيانات (أو ما يسمى بالطلبات الميتمة).
+                  </p>
+                </div>
+              )}
             </div>
 
             <div className="px-5 py-4 border-t flex flex-row-reverse gap-3 bg-gray-50/50">
@@ -179,7 +253,7 @@ export default function Settings() {
                 onClick={confirmImport}
                 className="flex-1 bg-purple-600 text-white font-bold py-2.5 px-4 rounded-xl hover:bg-purple-700 active:scale-95 transition-all text-sm"
               >
-                تأكيد الدمج
+                تأكيد وبدء الدمج
               </button>
               <button
                 onClick={cancelImport}
@@ -203,20 +277,55 @@ export default function Settings() {
         {/* Export Card */}
         <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-5">
           <div className="flex gap-4">
-            <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center flex-shrink-0 text-blue-600">
+            <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center flex-shrink-0 text-blue-600 mt-1">
               <DownloadCloud className="w-5 h-5" />
             </div>
-            <div>
+            <div className="flex-1">
               <h3 className="font-bold text-gray-900 mb-1">تصدير نسخة احتياطية</h3>
               <p className="text-sm text-gray-500 mb-4 leading-relaxed">
-                حفظ نسخة كاملة من جميع العملاء والطلبيات بصيغة (JSON) إلى جهازك. يمكنك استخدامها لاحقاً لدمج أو استعادة بياناتك.
+                حفظ نسخة كاملة من بياناتك بصيغة (JSON) إلى جهازك. يمكنك استخدامها لاحقاً لدمج أو استعادة بياناتك.
               </p>
+              
+              <div className="bg-gray-50 p-3 rounded-lg border border-gray-100 mb-4 space-y-2">
+                 <h4 className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">تحديد ما سيتم تصديره</h4>
+                 <label className={`flex items-center gap-2 text-sm text-gray-700 ${exportOptions.orders ? 'opacity-80 cursor-not-allowed' : 'cursor-pointer'}`}>
+                    <input 
+                      type="checkbox" 
+                      className="rounded text-blue-600 focus:ring-blue-500 w-4 h-4 disabled:bg-gray-200" 
+                      checked={exportOptions.customers} 
+                      disabled={exportOptions.orders}
+                      onChange={(e) => setExportOptions(prev => ({ ...prev, customers: e.target.checked }))} 
+                    />
+                    <span>تضمين بيانات العملاء <span className="text-xs text-gray-400">({store.customers.length})</span></span>
+                    {exportOptions.orders && (
+                       <span className="text-[10px] text-blue-600 font-bold bg-blue-50 px-2 py-0.5 rounded-full mr-2">
+                         (إجباري لحماية الطلبيات)
+                       </span>
+                    )}
+                 </label>
+                 <label className="flex items-center gap-2 text-sm text-gray-700 cursor-pointer">
+                    <input 
+                      type="checkbox" 
+                      className="rounded text-blue-600 focus:ring-blue-500 w-4 h-4" 
+                      checked={exportOptions.orders}
+                      onChange={(e) => {
+                        const checked = e.target.checked;
+                        setExportOptions(prev => ({ 
+                           orders: checked,
+                           customers: checked ? true : prev.customers 
+                        }));
+                      }} 
+                    />
+                    <span>تضمين سجل الطلبيات <span className="text-xs text-gray-400">({store.orders.length})</span></span>
+                 </label>
+              </div>
+
               <button 
                 onClick={handleExport}
                 className="bg-blue-50 text-blue-700 font-semibold px-4 py-2 rounded-lg text-sm flex items-center gap-2 hover:bg-blue-100 transition-colors"
               >
                 <FileJson className="w-4 h-4" />
-                تحميل الملف الآن
+                تصدير الملف الآن
               </button>
             </div>
           </div>
@@ -225,7 +334,7 @@ export default function Settings() {
         {/* Import Card */}
         <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-5">
           <div className="flex gap-4">
-            <div className="w-10 h-10 rounded-full bg-purple-100 flex items-center justify-center flex-shrink-0 text-purple-600">
+            <div className="w-10 h-10 rounded-full bg-purple-100 flex items-center justify-center flex-shrink-0 text-purple-600 mt-1">
               <UploadCloud className="w-5 h-5" />
             </div>
             <div className="flex-1">
@@ -252,21 +361,21 @@ export default function Settings() {
                 ) : (
                   <>
                     <UploadCloud className="w-4 h-4" />
-                    استيراد ملف الآن...
+                    اختيار ملف للاستيراد...
                   </>
                 )}
               </button>
 
               {/* Status Messages */}
               {importStatus === 'success' && (
-                <div className="mt-3 text-sm text-green-600 flex items-center gap-1.5 font-medium bg-green-50 p-2 rounded animate-in fade-in">
-                  <CheckCircle2 className="w-4 h-4" />
-                   تمت الدمج والمزامنة بنجاح!
+                <div className="mt-3 text-sm text-green-600 flex items-center gap-1.5 font-medium bg-green-50 p-3 rounded animate-in fade-in">
+                  <CheckCircle2 className="w-5 h-5" />
+                   تم الدمج والمزامنة السحابية بنجاح!
                 </div>
               )}
               {importStatus === 'error' && (
-                <div className="mt-3 text-sm text-red-600 flex items-center gap-1.5 font-medium bg-red-50 p-2 rounded animate-in fade-in">
-                  <AlertCircle className="w-4 h-4" />
+                <div className="mt-3 text-sm text-red-600 flex items-center gap-1.5 font-medium bg-red-50 p-3 rounded animate-in fade-in">
+                  <AlertCircle className="w-5 h-5" />
                   {errorMessage}
                 </div>
               )}
