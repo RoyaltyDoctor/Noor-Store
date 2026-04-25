@@ -288,21 +288,21 @@ export default function Settings() {
               
               <div className="bg-gray-50 p-3 rounded-lg border border-gray-100 mb-4 space-y-2">
                  <h4 className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">تحديد ما سيتم تصديره</h4>
-                 <label className={`flex items-center gap-2 text-sm text-gray-700 ${exportOptions.orders ? 'opacity-80 cursor-not-allowed' : 'cursor-pointer'}`}>
+                 
+                 <label className="flex items-center gap-2 text-sm text-gray-700 opacity-80 cursor-not-allowed">
                     <input 
                       type="checkbox" 
                       className="rounded text-blue-600 focus:ring-blue-500 w-4 h-4 disabled:bg-gray-200" 
-                      checked={exportOptions.customers} 
-                      disabled={exportOptions.orders}
-                      onChange={(e) => setExportOptions(prev => ({ ...prev, customers: e.target.checked }))} 
+                      checked={true} 
+                      disabled={true}
+                      readOnly
                     />
                     <span>تضمين بيانات العملاء <span className="text-xs text-gray-400">({store.customers.length})</span></span>
-                    {exportOptions.orders && (
-                       <span className="text-[10px] text-blue-600 font-bold bg-blue-50 px-2 py-0.5 rounded-full mr-2">
-                         (إجباري لحماية الطلبيات)
-                       </span>
-                    )}
+                    <span className="text-[10px] text-blue-600 font-bold bg-blue-50 px-2 py-0.5 rounded-full mr-2">
+                      (إجباري دائماً)
+                    </span>
                  </label>
+                 
                  <label className="flex items-center gap-2 text-sm text-gray-700 cursor-pointer">
                     <input 
                       type="checkbox" 
@@ -310,10 +310,10 @@ export default function Settings() {
                       checked={exportOptions.orders}
                       onChange={(e) => {
                         const checked = e.target.checked;
-                        setExportOptions(prev => ({ 
-                           orders: checked,
-                           customers: checked ? true : prev.customers 
-                        }));
+                        setExportOptions({ 
+                           customers: true, // always true
+                           orders: checked
+                        });
                       }} 
                     />
                     <span>تضمين سجل الطلبيات <span className="text-xs text-gray-400">({store.orders.length})</span></span>

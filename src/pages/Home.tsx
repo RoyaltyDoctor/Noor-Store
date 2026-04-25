@@ -140,8 +140,10 @@ export default function Home() {
   };
 
   const toggleMultiselectStatus = (status: OrderStatus) => {
-    setSelectedStatusesMult(prev => 
-      prev.includes(status) ? prev.filter(s => s !== status) : [...prev, status]
+    setSelectedStatusesMult(
+      selectedStatusesMult.includes(status) 
+        ? selectedStatusesMult.filter(s => s !== status) 
+        : [...selectedStatusesMult, status]
     );
   };
 
