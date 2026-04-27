@@ -1,7 +1,15 @@
-import { getDocs, collection, writeBatch, doc, onSnapshot, query, where } from 'firebase/firestore';
-import { db, auth, signIn } from './firebase';
-import { useStore } from './store';
-import { Customer, Order } from './types';
+import {
+  getDocs,
+  collection,
+  writeBatch,
+  doc,
+  onSnapshot,
+  query,
+  where,
+} from "firebase/firestore";
+import { db, auth, signIn } from "./firebase";
+import { useStore } from "./store";
+import { Customer, Order } from "./types";
 
 // Run once on login to merge any previously stored local data to the cloud
 export const runInitialSync = async (userId: string) => {
@@ -10,72 +18,143 @@ export const runInitialSync = async (userId: string) => {
     const localState = useStore.getState();
     const localCustomers = [...localState.customers];
     const localOrders = [...localState.orders];
-    
+    const syncQueue = localState.syncQueue || [];
+
+    // Process Offline action queue FIRST
+    if (syncQueue.length > 0) {
+      const queueBatch = writeBatch(db);
+      let hasOps = false;
+
+      // Keep only the latest operation for each document to avoid batch errors
+      const collapsedQueue = new Map();
+      syncQueue.forEach((item) => {
+        collapsedQueue.set(`${item.collectionName}_${item.id}`, item);
+      });
+
+      collapsedQueue.forEach((item) => {
+        if (item.type === "set") {
+          queueBatch.set(
+            doc(db, item.collectionName, item.id),
+            { ...item.data, userId },
+            { merge: true },
+          );
+          hasOps = true;
+        } else if (item.type === "delete") {
+          queueBatch.delete(doc(db, item.collectionName, item.id));
+          hasOps = true;
+        }
+      });
+
+      if (hasOps) {
+        await queueBatch.commit();
+      }
+      localState.clearSyncQueue();
+    }
+
     // 2. Fetch remote data
-    const customersSnapshot = await getDocs(collection(db, 'customers'));
-    const ordersSnapshot = await getDocs(collection(db, 'orders'));
-    
+    const qCustomers = query(
+      collection(db, "customers"),
+      where("userId", "==", userId),
+    );
+    const customersSnapshot = await getDocs(qCustomers);
+
+    const qOrders = query(
+      collection(db, "orders"),
+      where("userId", "==", userId),
+    );
+    const ordersSnapshot = await getDocs(qOrders);
+
     const remoteCustomers: Record<string, Customer & { userId: string }> = {};
-    customersSnapshot.docs.forEach(d => {
+    customersSnapshot.docs.forEach((d) => {
       const data = d.data();
-      if (data.userId === userId) remoteCustomers[d.id] = data as (Customer & { userId: string });
+      if (data.userId === userId)
+        remoteCustomers[d.id] = data as Customer & { userId: string };
     });
 
     const remoteOrders: Record<string, Order & { userId: string }> = {};
-    ordersSnapshot.docs.forEach(d => {
+    ordersSnapshot.docs.forEach((d) => {
       const data = d.data();
-      if (data.userId === userId) remoteOrders[d.id] = data as (Order & { userId: string });
+      if (data.userId === userId)
+        remoteOrders[d.id] = data as Order & { userId: string };
     });
 
     const mergedCustomersMap = new Map<string, Customer>();
     const mergedOrdersMap = new Map<string, Order>();
-    
+
     const batch = writeBatch(db);
     let uploadsCount = 0;
 
-    const uploadToFirebase = (collectionName: string, id: string, data: any) => {
-       const ref = doc(db, collectionName, id);
-       batch.set(ref, { ...data, userId }, { merge: true });
-       uploadsCount++;
+    const uploadToFirebase = (
+      collectionName: string,
+      id: string,
+      data: any,
+    ) => {
+      const ref = doc(db, collectionName, id);
+      batch.set(ref, { ...data, userId }, { merge: true });
+      uploadsCount++;
     };
 
-    localCustomers.forEach(localC => {
+    // 1. Process Local Customers
+    localCustomers.forEach((localC) => {
       const remoteC = remoteCustomers[localC.id];
       if (!remoteC) {
         mergedCustomersMap.set(localC.id, localC);
-        uploadToFirebase('customers', localC.id, localC);
+        uploadToFirebase("customers", localC.id, localC);
       } else {
         const localT = localC.updatedAt || 0;
         const remoteT = remoteC.updatedAt || 0;
         if (localT > remoteT) {
-           mergedCustomersMap.set(localC.id, localC);
-           uploadToFirebase('customers', localC.id, localC);
+          mergedCustomersMap.set(localC.id, localC);
+          uploadToFirebase("customers", localC.id, localC);
         } else {
-           mergedCustomersMap.set(remoteC.id, remoteC);
+          mergedCustomersMap.set(remoteC.id, remoteC);
         }
       }
     });
 
-    localOrders.forEach(localO => {
+    // 2. Add Remote Customers that don't exist locally
+    Object.values(remoteCustomers).forEach((remoteC) => {
+      if (!mergedCustomersMap.has(remoteC.id)) {
+        mergedCustomersMap.set(remoteC.id, remoteC);
+      }
+    });
+
+    // 3. Process Local Orders
+    localOrders.forEach((localO) => {
       const remoteO = remoteOrders[localO.id];
       if (!remoteO) {
         mergedOrdersMap.set(localO.id, localO);
-        uploadToFirebase('orders', localO.id, localO);
+        uploadToFirebase("orders", localO.id, localO);
       } else {
         const localT = localO.updatedAt || 0;
         const remoteT = remoteO.updatedAt || 0;
         if (localT > remoteT) {
-           mergedOrdersMap.set(localO.id, localO);
-           uploadToFirebase('orders', localO.id, localO);
+          mergedOrdersMap.set(localO.id, localO);
+          uploadToFirebase("orders", localO.id, localO);
         } else {
-           mergedOrdersMap.set(remoteO.id, remoteO);
+          mergedOrdersMap.set(remoteO.id, remoteO);
         }
+      }
+    });
+
+    // 4. Add Remote Orders that don't exist locally
+    Object.values(remoteOrders).forEach((remoteO) => {
+      if (!mergedOrdersMap.has(remoteO.id)) {
+        mergedOrdersMap.set(remoteO.id, remoteO);
       }
     });
 
     if (uploadsCount > 0) {
       await batch.commit();
     }
+
+    // Update local store with merged result
+    useStore.setState({
+      customers: Array.from(mergedCustomersMap.values()),
+      orders: Array.from(mergedOrdersMap.values()).sort(
+        (a, b) => b.dates.created - a.dates.created,
+      ),
+    });
   } catch (err) {
     console.error("Initial merge failed:", err);
   }
@@ -83,30 +162,43 @@ export const runInitialSync = async (userId: string) => {
 
 let unsubscribers: (() => void)[] = [];
 
+export const stopRealtimeSync = () => {
+  unsubscribers.forEach((unsub) => unsub());
+  unsubscribers = [];
+};
+
 export const startRealtimeSync = (userId: string) => {
-  unsubscribers.forEach(unsub => unsub());
+  unsubscribers.forEach((unsub) => unsub());
   unsubscribers = [];
 
-  const qCustomers = query(collection(db, 'customers'), where('userId', '==', userId));
+  const qCustomers = query(
+    collection(db, "customers"),
+    where("userId", "==", userId),
+  );
   const unsubC = onSnapshot(qCustomers, (snap) => {
-    const customers = snap.docs.map(d => d.data() as Customer);
+    const customers = snap.docs.map((d) => d.data() as Customer);
     useStore.setState({ customers });
   });
   unsubscribers.push(unsubC);
 
-  const qOrders = query(collection(db, 'orders'), where('userId', '==', userId));
+  const qOrders = query(
+    collection(db, "orders"),
+    where("userId", "==", userId),
+  );
   const unsubO = onSnapshot(qOrders, (snap) => {
-    const orders = snap.docs.map(d => d.data() as Order);
-    orders.sort((a,b) => b.dates.created - a.dates.created);
+    const orders = snap.docs.map((d) => d.data() as Order);
+    orders.sort((a, b) => b.dates.created - a.dates.created);
     useStore.setState({ orders });
   });
   unsubscribers.push(unsubO);
 
-  const qDeleted = query(collection(db, 'deletedOrders'), where('userId', '==', userId));
+  const qDeleted = query(
+    collection(db, "deletedOrders"),
+    where("userId", "==", userId),
+  );
   const unsubD = onSnapshot(qDeleted, (snap) => {
-     const deletedOrders = snap.docs.map(d => d.data() as any);
-     useStore.setState({ deletedOrders });
+    const deletedOrders = snap.docs.map((d) => d.data() as any);
+    useStore.setState({ deletedOrders });
   });
   unsubscribers.push(unsubD);
 };
-

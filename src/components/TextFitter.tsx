@@ -1,10 +1,10 @@
-import React, { useRef, useState, useLayoutEffect, useEffect } from 'react';
+import React, { useRef, useState, useLayoutEffect, useEffect } from "react";
 
 export const TextFitter: React.FC<{
   children: React.ReactNode;
-  origin?: 'right' | 'center' | 'left';
+  origin?: "right" | "center" | "left";
   className?: string;
-}> = ({ children, origin = 'right', className = "w-full" }) => {
+}> = ({ children, origin = "right", className = "w-full" }) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const [scale, setScale] = useState(1);
 
@@ -16,7 +16,7 @@ export const TextFitter: React.FC<{
 
     const containerWidth = container.offsetWidth;
     // adding a tiny buffer (1px) to avoid precision rounding issues that could cause clip
-    const contentWidth = content.scrollWidth + 1; 
+    const contentWidth = content.scrollWidth + 1;
 
     if (contentWidth > containerWidth && containerWidth > 0) {
       setScale(containerWidth / contentWidth);
@@ -30,18 +30,18 @@ export const TextFitter: React.FC<{
   }, [children]);
 
   useEffect(() => {
-    window.addEventListener('resize', updateScale);
-    return () => window.removeEventListener('resize', updateScale);
+    window.addEventListener("resize", updateScale);
+    return () => window.removeEventListener("resize", updateScale);
   }, []);
 
-  let justifyContent = 'flex-start'; 
-  if (origin === 'center') justifyContent = 'center';
-  if (origin === 'left') justifyContent = 'flex-end'; // RTL flex-end is visually left
+  let justifyContent = "flex-start";
+  if (origin === "center") justifyContent = "center";
+  if (origin === "left") justifyContent = "flex-end"; // RTL flex-end is visually left
 
   return (
-    <div 
-      ref={containerRef} 
-      className={`flex min-w-0 max-w-full items-center overflow-hidden ${className}`} 
+    <div
+      ref={containerRef}
+      className={`flex min-w-0 max-w-full items-center overflow-hidden ${className}`}
       style={{ justifyContent }}
     >
       <div
