@@ -5,7 +5,7 @@ import React, {
   useLayoutEffect,
   useRef,
 } from "react";
-import { useStore, useFilterStore } from "../store";
+import { useStore, useFilterStore, DateFilterType } from "../store";
 import { Link, useNavigate } from "react-router-dom";
 import {
   Plus,
