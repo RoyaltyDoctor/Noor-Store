@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useEffect } from "react";
-import { useStore } from "../store";
+import { useStore, useCustomersFilterStore, SortOptionCustomers } from "../store";
 import { Link, useLocation } from "react-router-dom";
 import {
   Users,
@@ -17,20 +17,15 @@ import {
   Filter,
   ArrowUp,
   ArrowDown,
+  SortDesc,
+  Check,
 } from "lucide-react";
 import { format } from "date-fns";
 import type { Customer } from "../types";
 import clsx from "clsx";
 import { STATUS_LABELS, STATUS_COLORS } from "../types";
 
-type SortOption =
-  | "ALPHABETICAL"
-  | "CREATED_AT"
-  | "UPDATED_AT"
-  | "PENDING_ORDERS"
-  | "TOTAL_ORDERS";
-
-const SORT_LABELS: Record<SortOption, string> = {
+const SORT_LABELS: Record<SortOptionCustomers, string> = {
   ALPHABETICAL: "الأبجدية",
   CREATED_AT: "تاريخ التسجيل",
   UPDATED_AT: "تاريخ التعديل",
@@ -41,10 +36,17 @@ const SORT_LABELS: Record<SortOption, string> = {
 export default function Customers() {
   const { customers, orders, addCustomer, updateCustomer, deleteCustomer } =
     useStore();
+  const {
+    searchQuery,
+    setSearchQuery,
+    sortBy,
+    setSortBy,
+    sortDirection,
+    setSortDirection,
+  } = useCustomersFilterStore();
   const location = useLocation();
   const [isAdding, setIsAdding] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
-  const [searchQuery, setSearchQuery] = useState("");
 
   const [viewCustomerHistory, setViewCustomerHistory] =
     useState<Customer | null>(null);
@@ -72,8 +74,6 @@ export default function Customers() {
   });
   const [showExtraDetails, setShowExtraDetails] = useState(false);
 
-  const [sortBy, setSortBy] = useState<SortOption>("UPDATED_AT");
-  const [sortDirection, setSortDirection] = useState<"asc" | "desc">("desc");
   const [showSortMenu, setShowSortMenu] = useState(false);
 
   const filteredCustomers = useMemo(() => {
@@ -145,8 +145,8 @@ export default function Customers() {
     const q = searchQuery.toLowerCase();
     return list.filter(
       (c) =>
-        c.name.toLowerCase().includes(q) ||
-        c.phone.includes(q) ||
+        c.name?.toLowerCase().includes(q) ||
+        (c.phone && c.phone.includes(q)) ||
         c.notes?.toLowerCase().includes(q),
     );
   }, [customers, orders, searchQuery, sortBy, sortDirection]);
@@ -200,7 +200,7 @@ export default function Customers() {
     if (!viewCustomerHistory) return [];
     return orders
       .filter((o) => o.customerId === viewCustomerHistory.id)
-      .sort((a, b) => b.dates.created - a.dates.created);
+      .sort((a, b) => (b.dates?.created || 0) - (a.dates?.created || 0));
   }, [viewCustomerHistory, orders]);
 
   return (
@@ -220,7 +220,7 @@ export default function Customers() {
             setFormData({ name: "", phone: "", address: "", notes: "" });
             setShowExtraDetails(false);
           }}
-          className="bg-purple-100 text-purple-700 px-3 py-1.5 rounded-lg text-sm font-bold flex items-center gap-1 active:bg-purple-200 transition-colors dark:bg-purple-600 dark:text-white dark:hover:bg-purple-700"
+          className="bg-gray-900 text-white px-3 py-2 rounded-xl text-xs sm:text-sm font-bold flex items-center gap-1 active:scale-95 transition-transform shadow-md dark:shadow-none dark:bg-purple-600 dark:hover:bg-purple-700"
         >
           <Plus className="w-4 h-4" /> إضافة عميل
         </button>
@@ -234,18 +234,24 @@ export default function Customers() {
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder="ابحث عن عميل بالإسم، الجوال، الملاحظات..."
-            className="w-full pl-3 pr-9 py-2 bg-white border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-purple-500 outline-none dark:bg-gray-800 dark:border-gray-600"
+            className="w-full pl-3 pr-9 py-2 bg-white border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-purple-500 outline-none transition-all placeholder:text-gray-400 dark:bg-gray-800 dark:border-gray-600"
           />
         </div>
         <div className="relative">
           <button
             onClick={() => setShowSortMenu(!showSortMenu)}
-            className="bg-white border border-gray-200 px-3 py-2 rounded-xl text-sm font-bold text-gray-700 flex items-center gap-2 hover:bg-gray-50 shadow-sm transition-colors dark:bg-gray-800 dark:border-gray-600 dark:text-gray-200 dark:shadow-none"
+            className={clsx(
+              "p-2 rounded-xl border transition-colors relative",
+               sortBy !== "CREATED_AT"
+              ? "bg-purple-50 border-purple-200 text-purple-600 dark:bg-purple-900/30 dark:border-purple-800 dark:text-purple-400"
+              : "bg-white border-gray-200 text-gray-600 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-300",
+            )}
+            title="تغيير الترتيب"
           >
-            <Filter className="w-4 h-4 text-purple-600 dark:text-purple-400" />
-            <span className="hidden sm:inline">
-              ترتيب: {SORT_LABELS[sortBy]}
-            </span>
+            <SortDesc className="w-5 h-5" />
+            {sortBy !== "CREATED_AT" && (
+              <div className="absolute top-1 right-1 w-2 h-2 bg-purple-500 rounded-full border border-white dark:border-gray-900"></div>
+            )}
           </button>
 
           {showSortMenu && (
@@ -254,43 +260,48 @@ export default function Customers() {
                 className="fixed inset-0 z-10"
                 onClick={() => setShowSortMenu(false)}
               ></div>
-              <div className="absolute top-full left-0 mt-2 w-48 bg-white border border-gray-100 rounded-xl shadow-lg z-20 py-2 overflow-hidden dark:bg-gray-800 dark:border-gray-700 dark:shadow-none">
-                {(Object.entries(SORT_LABELS) as [SortOption, string][]).map(
+              <div className="absolute top-12 left-0 w-56 bg-white border border-gray-200 rounded-xl shadow-xl z-20 py-2 dark:bg-gray-800 dark:border-gray-700 dark:shadow-none">
+                <div className="px-4 py-2 border-b border-gray-100 mb-1 dark:border-gray-700">
+                  <span className="text-xs font-bold text-gray-500 dark:text-gray-400">
+                    الترتيب حسب
+                  </span>
+                </div>
+                {(Object.entries(SORT_LABELS) as [SortOptionCustomers, string][]).map(
                   ([key, label]) => {
                     const isActive = sortBy === key;
                     return (
                       <div
                         key={key}
                         className={clsx(
-                          "w-full flex items-center justify-between text-sm transition-colors",
+                          "w-full flex items-center justify-between text-sm transition-colors cursor-pointer",
                           isActive
-                            ? "text-purple-700 font-bold bg-purple-50/50"
-                            : "text-gray-700 font-medium hover:bg-purple-50",
+                            ? "bg-purple-50 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300 font-bold"
+                            : "text-gray-700 hover:bg-gray-50 dark:text-gray-300 dark:hover:bg-gray-700/50",
                         )}
+                        onClick={() => {
+                          setSortBy(key as SortOptionCustomers);
+                          setShowSortMenu(false);
+                        }}
                       >
-                        <button
-                          className="flex-1 text-right px-4 py-2"
-                          onClick={() => {
-                            setSortBy(key as SortOption);
-                            setShowSortMenu(false);
-                          }}
-                        >
-                          {label}
-                        </button>
+                        <div className="flex items-center flex-1 px-4 py-2">
+                          {isActive && <Check className="w-4 h-4 ml-auto block" />}
+                          <span className={isActive ? "ml-4" : ""}>{label}</span>
+                        </div>
                         {isActive && (
                           <button
-                            className="ml-3 p-1.5 rounded-md bg-purple-100 text-purple-700 hover:bg-purple-200 transition-colors dark:text-purple-300"
+                            className="bg-transparent p-2 text-purple-700 hover:text-purple-800 transition-colors dark:text-purple-300 dark:hover:text-purple-200"
                             onClick={(e) => {
                               e.stopPropagation();
                               setSortDirection((prev) =>
                                 prev === "asc" ? "desc" : "asc",
                               );
                             }}
+                            title="عكس الترتيب"
                           >
                             {sortDirection === "desc" ? (
-                              <ArrowDown className="w-3.5 h-3.5" />
+                              <ArrowDown className="w-4 h-4 md:ml-1" />
                             ) : (
-                              <ArrowUp className="w-3.5 h-3.5" />
+                              <ArrowUp className="w-4 h-4 md:ml-1" />
                             )}
                           </button>
                         )}
@@ -638,7 +649,7 @@ export default function Customers() {
                   const serviceFee = order.serviceFee || 0;
                   const shippingFee = order.shippingFee || 0;
                   const total =
-                    order.items.reduce((s, i) => s + i.price * i.quantity, 0) +
+                    (order.items || []).reduce((s, i) => s + i.price * i.quantity, 0) +
                     serviceFee +
                     shippingFee;
                   return (
@@ -648,7 +659,7 @@ export default function Customers() {
                       className="block bg-white p-4 rounded-xl border border-gray-100 shadow-sm active:scale-95 transition-transform dark:bg-gray-800 dark:border-gray-700 dark:shadow-none"
                     >
                       <div className="flex justify-between items-start mb-2">
-                        <span className="text-[10px] font-mono font-bold text-gray-500 bg-gray-50 px-1.5 py-0.5 rounded border border-gray-100 dark:text-gray-400 dark:bg-gray-900 dark:border-gray-700 dark:bg-gray-800">
+                        <span className="text-[10px] font-mono font-bold text-gray-500 bg-gray-50 px-1.5 py-0.5 rounded border border-gray-100 dark:bg-gray-800 dark:text-gray-300 dark:border-gray-700">
                           #{order.orderNumber}
                         </span>
                         <span
@@ -663,16 +674,16 @@ export default function Customers() {
                       <div className="text-sm font-bold text-gray-900 mb-2 dark:text-white">
                         {total} ر.س{" "}
                         <span className="text-xs text-gray-400 font-normal">
-                          ({order.items.reduce((a, i) => a + i.quantity, 0)}{" "}
+                          ({(order.items || []).reduce((a, i) => a + i.quantity, 0)}{" "}
                           قطع)
                         </span>
                       </div>
                       <div className="flex justify-between items-center border-t border-gray-50 pt-2 dark:border-gray-700">
                         <span className="text-[10px] text-gray-400">
                           {order.dates?.created &&
-                          !isNaN(new Date(order.dates.created).getTime())
+                          !isNaN(new Date(order.dates?.created).getTime())
                             ? format(
-                                new Date(order.dates.created),
+                                new Date(order.dates?.created),
                                 "yyyy/MM/dd",
                               )
                             : "غير متوفر"}

@@ -50,6 +50,23 @@
       },
       "required": ["userId", "customerId", "status", "createdAt", "updatedAt"]
     },
+    "Batch": {
+      "title": "Batch",
+      "description": "A consolidated order batch",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "batchNumber": { "type": "string" },
+        "status": { "type": "string" },
+        "couponEnabled": { "type": "boolean" },
+        "couponCode": { "type": "string" },
+        "trackingNumber": { "type": "string" },
+        "bankFees": { "type": "number" },
+        "dates": { "type": "object" },
+        "notes": { "type": "string" }
+      },
+      "required": ["userId", "batchNumber", "status", "dates"]
+    },
     "DeletedOrder": {
       "title": "Deleted Order",
       "description": "Log of deleted orders to track numbers",
@@ -74,6 +91,10 @@
     "/orders/{orderId}": {
       "schema": { "$ref": "#/entities/Order" },
       "description": "Store orders"
+    },
+    "/batches/{batchId}": {
+      "schema": { "$ref": "#/entities/Batch" },
+      "description": "Consolidated order batches"
     },
     "/deletedOrders/{deletedOrderId}": {
       "schema": { "$ref": "#/entities/DeletedOrder" },

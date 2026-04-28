@@ -7,9 +7,9 @@ import {
   query,
   where,
 } from "firebase/firestore";
-import { db, auth, signIn } from "./firebase";
+import { db, auth, signIn, handleFirestoreError, OperationType } from "./firebase";
 import { useStore } from "./store";
-import { Customer, Order } from "./types";
+import { Customer, Order, Batch } from "./types";
 
 // Run once on login to merge any previously stored local data to the cloud
 export const runInitialSync = async (userId: string) => {
@@ -18,6 +18,7 @@ export const runInitialSync = async (userId: string) => {
     const localState = useStore.getState();
     const localCustomers = [...localState.customers];
     const localOrders = [...localState.orders];
+    const localBatches = [...localState.batches];
     const syncQueue = localState.syncQueue || [];
 
     // Process Offline action queue FIRST
@@ -46,23 +47,50 @@ export const runInitialSync = async (userId: string) => {
       });
 
       if (hasOps) {
-        await queueBatch.commit();
+        await queueBatch.commit().catch((err) => handleFirestoreError(err, OperationType.WRITE, "syncQueue"));
       }
       localState.clearSyncQueue();
     }
 
     // 2. Fetch remote data
-    const qCustomers = query(
-      collection(db, "customers"),
-      where("userId", "==", userId),
-    );
-    const customersSnapshot = await getDocs(qCustomers);
+    let customersSnapshot, ordersSnapshot, batchesSnapshot, deletedSnapshot;
+    
+    try {
+      customersSnapshot = await getDocs(
+        query(collection(db, "customers"), where("userId", "==", userId))
+      );
+    } catch (err) {
+      handleFirestoreError(err, OperationType.GET, "customers");
+      return;
+    }
 
-    const qOrders = query(
-      collection(db, "orders"),
-      where("userId", "==", userId),
-    );
-    const ordersSnapshot = await getDocs(qOrders);
+    try {
+      ordersSnapshot = await getDocs(
+        query(collection(db, "orders"), where("userId", "==", userId))
+      );
+    } catch (err) {
+      handleFirestoreError(err, OperationType.GET, "orders");
+      return;
+    }
+
+    try {
+      batchesSnapshot = await getDocs(
+        query(collection(db, "batches"), where("userId", "==", userId))
+      );
+    } catch (err) {
+      handleFirestoreError(err, OperationType.GET, "batches");
+      return;
+    }
+
+    try {
+      deletedSnapshot = await getDocs(
+        query(collection(db, "deletedOrders"), where("userId", "==", userId))
+      );
+    } catch (err) {
+      handleFirestoreError(err, OperationType.GET, "deletedOrders");
+      return;
+    }
+
 
     const remoteCustomers: Record<string, Customer & { userId: string }> = {};
     customersSnapshot.docs.forEach((d) => {
@@ -78,8 +106,16 @@ export const runInitialSync = async (userId: string) => {
         remoteOrders[d.id] = data as Order & { userId: string };
     });
 
+    const remoteBatches: Record<string, Batch & { userId: string }> = {};
+    batchesSnapshot.docs.forEach((d) => {
+      const data = d.data();
+      if (data.userId === userId)
+        remoteBatches[d.id] = data as Batch & { userId: string };
+    });
+
     const mergedCustomersMap = new Map<string, Customer>();
     const mergedOrdersMap = new Map<string, Order>();
+    const mergedBatchesMap = new Map<string, Batch>();
 
     const batch = writeBatch(db);
     let uploadsCount = 0;
@@ -144,6 +180,31 @@ export const runInitialSync = async (userId: string) => {
       }
     });
 
+    // 5. Process Local Batches
+    localBatches.forEach((localB) => {
+      const remoteB = remoteBatches[localB.id];
+      if (!remoteB) {
+        mergedBatchesMap.set(localB.id, localB);
+        uploadToFirebase("batches", localB.id, localB);
+      } else {
+        const localT = localB.dates?.updated || 0;
+        const remoteT = remoteB.dates?.updated || 0;
+        if (localT > remoteT) {
+          mergedBatchesMap.set(localB.id, localB);
+          uploadToFirebase("batches", localB.id, localB);
+        } else {
+          mergedBatchesMap.set(remoteB.id, remoteB);
+        }
+      }
+    });
+
+    // 6. Add Remote Batches that don't exist locally
+    Object.values(remoteBatches).forEach((remoteB) => {
+      if (!mergedBatchesMap.has(remoteB.id)) {
+        mergedBatchesMap.set(remoteB.id, remoteB);
+      }
+    });
+
     if (uploadsCount > 0) {
       await batch.commit();
     }
@@ -152,11 +213,15 @@ export const runInitialSync = async (userId: string) => {
     useStore.setState({
       customers: Array.from(mergedCustomersMap.values()),
       orders: Array.from(mergedOrdersMap.values()).sort(
-        (a, b) => b.dates.created - a.dates.created,
+        (a, b) => (b.dates?.created || 0) - (a.dates?.created || 0),
+      ),
+      batches: Array.from(mergedBatchesMap.values()).sort(
+        (a, b) => (b.dates?.created || 0) - (a.dates?.created || 0),
       ),
     });
   } catch (err) {
     console.error("Initial merge failed:", err);
+    throw err;
   }
 };
 
@@ -178,7 +243,7 @@ export const startRealtimeSync = (userId: string) => {
   const unsubC = onSnapshot(qCustomers, (snap) => {
     const customers = snap.docs.map((d) => d.data() as Customer);
     useStore.setState({ customers });
-  });
+  }, (err) => handleFirestoreError(err, OperationType.LIST, "customers"));
   unsubscribers.push(unsubC);
 
   const qOrders = query(
@@ -187,10 +252,21 @@ export const startRealtimeSync = (userId: string) => {
   );
   const unsubO = onSnapshot(qOrders, (snap) => {
     const orders = snap.docs.map((d) => d.data() as Order);
-    orders.sort((a, b) => b.dates.created - a.dates.created);
+    orders.sort((a, b) => (b.dates?.created || 0) - (a.dates?.created || 0));
     useStore.setState({ orders });
-  });
+  }, (err) => handleFirestoreError(err, OperationType.LIST, "orders"));
   unsubscribers.push(unsubO);
+
+  const qBatches = query(
+    collection(db, "batches"),
+    where("userId", "==", userId),
+  );
+  const unsubB = onSnapshot(qBatches, (snap) => {
+    const batches = snap.docs.map((d) => d.data() as Batch);
+    batches.sort((a, b) => (b.dates?.created || 0) - (a.dates?.created || 0));
+    useStore.setState({ batches });
+  }, (err) => handleFirestoreError(err, OperationType.LIST, "batches"));
+  unsubscribers.push(unsubB);
 
   const qDeleted = query(
     collection(db, "deletedOrders"),
@@ -199,6 +275,6 @@ export const startRealtimeSync = (userId: string) => {
   const unsubD = onSnapshot(qDeleted, (snap) => {
     const deletedOrders = snap.docs.map((d) => d.data() as any);
     useStore.setState({ deletedOrders });
-  });
+  }, (err) => handleFirestoreError(err, OperationType.LIST, "deletedOrders"));
   unsubscribers.push(unsubD);
 };

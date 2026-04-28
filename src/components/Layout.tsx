@@ -8,12 +8,15 @@ import {
   CheckCircle2,
   UserCircle,
   Settings as SettingsIcon,
+  ShoppingCart,
 } from "lucide-react";
 import HomeRoute from "../pages/Home";
 import CustomersRoute from "../pages/Customers";
 import OrderDetailsRoute from "../pages/OrderDetails";
 import ReportsRoute from "../pages/Reports";
 import SettingsRoute from "../pages/Settings";
+import BatchesRoute from "../pages/Batches";
+import BatchDetailsRoute from "../pages/BatchDetails";
 import { useStore } from "../store";
 import { useState, useEffect } from "react";
 import { runInitialSync, startRealtimeSync, stopRealtimeSync } from "../sync";
@@ -204,15 +207,31 @@ export default function Layout() {
         >
           <Routes>
             <Route path="/" element={<HomeRoute />} />
+            <Route path="/batches" element={<BatchesRoute />} />
             <Route path="/customers" element={<CustomersRoute />} />
             <Route path="/reports" element={<ReportsRoute />} />
             <Route path="/order/:id" element={<OrderDetailsRoute />} />
+            <Route path="/batch/:id" element={<BatchDetailsRoute />} />
             <Route path="/settings" element={<SettingsRoute />} />
           </Routes>
         </main>
 
         {/* Bottom Navigation */}
-        <nav className="absolute bottom-0 w-full bg-white border-t border-gray-200 px-6 py-3 flex justify-between items-center z-20 pb-safe dark:bg-gray-800 dark:border-gray-700 dark:border-gray-600">
+        <nav className="absolute bottom-0 w-full bg-white border-t border-gray-200 px-3 py-3 flex justify-between items-center z-20 pb-safe dark:bg-gray-800 dark:border-gray-700 dark:border-gray-600">
+          <NavLink
+            to="/batches"
+            className={({ isActive }) =>
+              `flex flex-col items-center gap-1 ${
+                isActive
+                  ? "text-purple-600 dark:text-purple-400"
+                  : "text-gray-400 hover:text-gray-600"
+              }`
+            }
+          >
+            <ShoppingCart className="w-6 h-6" />
+            <span className="text-[10px] font-medium">السلات</span>
+          </NavLink>
+
           <NavLink
             to="/"
             className={({ isActive }) =>
@@ -224,7 +243,7 @@ export default function Layout() {
             }
           >
             <Home className="w-6 h-6" />
-            <span className="text-[10px] font-medium">الطلبات</span>
+            <span className="text-[10px] font-medium">الطلبيات</span>
           </NavLink>
 
           <NavLink

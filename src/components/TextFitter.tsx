@@ -1,4 +1,4 @@
-import React, { useRef, useState, useLayoutEffect, useEffect } from "react";
+import React, { useRef, useState, useEffect } from "react";
 
 export const TextFitter: React.FC<{
   children: React.ReactNode;
@@ -25,7 +25,7 @@ export const TextFitter: React.FC<{
     }
   };
 
-  useLayoutEffect(() => {
+  useEffect(() => {
     updateScale();
   }, [children]);
 

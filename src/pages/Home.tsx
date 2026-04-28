@@ -2,7 +2,6 @@ import React, {
   useState,
   useMemo,
   useEffect,
-  useLayoutEffect,
   useRef,
 } from "react";
 import { useStore, useFilterStore, DateFilterType } from "../store";
@@ -23,6 +22,8 @@ import {
   CalendarDays,
   ChevronDown,
   ChevronUp,
+  ShoppingCart,
+  SortDesc,
 } from "lucide-react";
 import { STATUS_LABELS, STATUS_COLORS, OrderStatus, Order } from "../types";
 import clsx from "clsx";
@@ -37,7 +38,7 @@ import {
 import { TextFitter } from "../components/TextFitter";
 
 export default function Home() {
-  const { orders, customers, addOrder, addCustomer } = useStore();
+  const { orders, customers, batches, addOrder, addCustomer } = useStore();
   const {
     searchQuery,
     setSearchQuery,
@@ -55,13 +56,15 @@ export default function Home() {
     setCustomEndDate,
     scrollPosition,
     setScrollPosition,
+    sortOption,
+    setSortOption,
   } = useFilterStore();
 
   const navigate = useNavigate();
 
   const scrollRestored = React.useRef(false);
 
-  useLayoutEffect(() => {
+  useEffect(() => {
     const container = document.getElementById("main-scroll-container");
     if (!container) return;
 
@@ -98,6 +101,7 @@ export default function Home() {
   // Local dropdown visibility state
   const [showFilterDropdown, setShowFilterDropdown] = useState(false);
   const [showDateDropdown, setShowDateDropdown] = useState(false);
+  const [showSortDropdown, setShowSortDropdown] = useState(false);
   const dropdownsContainerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -108,6 +112,7 @@ export default function Home() {
       ) {
         setShowFilterDropdown(false);
         setShowDateDropdown(false);
+        setShowSortDropdown(false);
       }
     };
 
@@ -133,7 +138,7 @@ export default function Home() {
   const [copiedOrderId, setCopiedOrderId] = useState<string | null>(null);
 
   const filteredOrders = useMemo(() => {
-    return orders.filter((o) => {
+    const filtered = orders.filter((o) => {
       // Date filter
       if (dateFilter !== "ALL") {
         const timestamp =
@@ -190,6 +195,32 @@ export default function Home() {
 
       return customerMatch || orderNumMatch || trackingMatch;
     });
+
+    // Sorting
+    switch (sortOption) {
+      case "NEWEST":
+        filtered.sort((a, b) => (b.dates?.created || 0) - (a.dates?.created || 0));
+        break;
+      case "OLDEST":
+        filtered.sort((a, b) => (a.dates?.created || 0) - (b.dates?.created || 0));
+        break;
+      case "HIGHEST_PRICE":
+        filtered.sort((a, b) => {
+          const totalA = (a.items || []).reduce((sum, item) => sum + item.price * item.quantity, 0) + (a.serviceFee || 0) + (a.shippingFee || 0);
+          const totalB = (b.items || []).reduce((sum, item) => sum + item.price * item.quantity, 0) + (b.serviceFee || 0) + (b.shippingFee || 0);
+          return totalB - totalA;
+        });
+        break;
+      case "LOWEST_PRICE":
+        filtered.sort((a, b) => {
+          const totalA = (a.items || []).reduce((sum, item) => sum + item.price * item.quantity, 0) + (a.serviceFee || 0) + (a.shippingFee || 0);
+          const totalB = (b.items || []).reduce((sum, item) => sum + item.price * item.quantity, 0) + (b.serviceFee || 0) + (b.shippingFee || 0);
+          return totalA - totalB;
+        });
+        break;
+    }
+
+    return filtered;
   }, [
     orders,
     isMultiSelectMode,
@@ -200,12 +231,13 @@ export default function Home() {
     dateFilter,
     customStartDate,
     customEndDate,
+    sortOption,
   ]);
 
   const filteredCustomersForOrder = useMemo(() => {
     return customers.filter(
       (c) =>
-        c.name.includes(customerSearch) || c.phone.includes(customerSearch),
+        c.name?.includes(customerSearch) || (c.phone && c.phone.includes(customerSearch)),
     );
   }, [customers, customerSearch]);
 
@@ -283,22 +315,37 @@ export default function Home() {
           />
         </div>
         <button
-          onClick={() => setShowDateDropdown(!showDateDropdown)}
+          onClick={() => { setShowSortDropdown(!showSortDropdown); setShowDateDropdown(false); setShowFilterDropdown(false); }}
+          className={clsx(
+            "p-2 rounded-xl border transition-colors relative",
+            sortOption !== "NEWEST"
+              ? "bg-purple-50 border-purple-200 text-purple-600 dark:bg-purple-900/30 dark:border-purple-800 dark:text-purple-400"
+              : "bg-white border-gray-200 text-gray-600 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-300",
+          )}
+          title="تغيير الترتيب"
+        >
+          <SortDesc className="w-5 h-5" />
+          {sortOption !== "NEWEST" && (
+            <div className="absolute top-1 right-1 w-2 h-2 bg-purple-500 rounded-full border border-white dark:border-gray-900"></div>
+          )}
+        </button>
+        <button
+          onClick={() => { setShowDateDropdown(!showDateDropdown); setShowFilterDropdown(false); setShowSortDropdown(false); }}
           className={clsx(
             "p-2 rounded-xl border transition-colors relative",
             dateFilter !== "ALL"
-              ? "bg-purple-50 border-purple-200 text-purple-600"
-              : "bg-white border-gray-200 text-gray-600",
+              ? "bg-purple-50 border-purple-200 text-purple-600 dark:bg-purple-900/30 dark:border-purple-800 dark:text-purple-400"
+              : "bg-white border-gray-200 text-gray-600 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-300",
           )}
           title="تصفية حسب التاريخ"
         >
           <CalendarDays className="w-5 h-5" />
           {dateFilter !== "ALL" && (
-            <div className="absolute top-1 right-1 w-2 h-2 bg-purple-500 rounded-full border border-white"></div>
+            <div className="absolute top-1 right-1 w-2 h-2 bg-purple-500 rounded-full border border-white dark:border-gray-900"></div>
           )}
         </button>
         <button
-          onClick={() => setShowFilterDropdown(!showFilterDropdown)}
+          onClick={() => { setShowFilterDropdown(!showFilterDropdown); setShowDateDropdown(false); setShowSortDropdown(false); }}
           className={clsx(
             "p-2 rounded-xl border transition-colors",
             (
@@ -306,12 +353,45 @@ export default function Home() {
                 ? selectedStatusesMult.length < 5
                 : selectedStatus !== "ACTIVE"
             )
-              ? "bg-purple-50 border-purple-200 text-purple-600"
-              : "bg-white border-gray-200 text-gray-600",
+              ? "bg-purple-50 border-purple-200 text-purple-600 dark:bg-purple-900/30 dark:border-purple-800 dark:text-purple-400"
+              : "bg-white border-gray-200 text-gray-600 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-300",
           )}
         >
           <Filter className="w-5 h-5" />
         </button>
+
+        {showSortDropdown && (
+          <div className="absolute top-12 left-24 w-48 bg-white border border-gray-200 rounded-xl shadow-xl z-20 py-2 dark:bg-gray-800 dark:border-gray-700 dark:shadow-none">
+            <div className="px-4 py-2 border-b border-gray-100 mb-1 dark:border-gray-700">
+              <span className="text-xs font-bold text-gray-500 dark:text-gray-400">
+                ترتيب حسب
+              </span>
+            </div>
+            {[
+              { id: "NEWEST", label: "الأحدث أولاً" },
+              { id: "OLDEST", label: "الأقدم أولاً" },
+              { id: "HIGHEST_PRICE", label: "الأعلى سعراً" },
+              { id: "LOWEST_PRICE", label: "الأقل سعراً" },
+            ].map((option) => (
+              <button
+                key={option.id}
+                onClick={() => {
+                  setSortOption(option.id as any);
+                  setShowSortDropdown(false);
+                }}
+                className={clsx(
+                  "w-full text-right px-4 py-2 text-sm flex items-center gap-2",
+                  sortOption === option.id
+                    ? "bg-purple-50 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300 font-bold"
+                    : "text-gray-700 hover:bg-gray-50 dark:text-gray-300 dark:hover:bg-gray-700/50",
+                )}
+              >
+                {sortOption === option.id && <Check className="w-4 h-4 ml-auto block" />}
+                <span className={sortOption === option.id ? "ml-4" : ""}>{option.label}</span>
+              </button>
+            ))}
+          </div>
+        )}
 
         {showDateDropdown && (
           <div className="absolute top-12 left-12 w-48 bg-white border border-gray-200 rounded-xl shadow-xl z-20 py-2 dark:bg-gray-800 dark:border-gray-600 dark:shadow-none">
@@ -334,14 +414,14 @@ export default function Home() {
                   setDateFilter(filter.id as DateFilterType);
                   setShowDateDropdown(false);
                 }}
-                className="w-full text-right px-4 py-2 hover:bg-gray-50 text-sm flex items-center gap-3 transition-colors outline-none"
+                className="w-full text-right px-4 py-2 hover:bg-gray-50 dark:hover:bg-gray-700/50 text-sm flex items-center gap-3 transition-colors outline-none"
               >
                 <div
                   className={clsx(
                     "w-4 h-4 rounded-full border flex items-center justify-center transition-colors",
                     dateFilter === filter.id
                       ? "border-purple-600 bg-purple-600"
-                      : "border-gray-300 bg-white",
+                      : "border-gray-300 bg-white dark:border-gray-600 dark:bg-gray-800",
                   )}
                 >
                   {dateFilter === filter.id && (
@@ -352,8 +432,8 @@ export default function Home() {
                   className={clsx(
                     "transition-colors",
                     dateFilter === filter.id
-                      ? "text-purple-700 font-bold"
-                      : "text-gray-700",
+                      ? "text-purple-700 dark:text-purple-400 font-bold"
+                      : "text-gray-700 dark:text-gray-300",
                   )}
                 >
                   {filter.label}
@@ -399,14 +479,14 @@ export default function Home() {
                   }
                 }}
                 className={clsx(
-                  "px-2 py-1 transition-colors rounded hover:bg-gray-50",
+                  "px-2 py-1 transition-colors rounded hover:bg-gray-50 dark:hover:bg-gray-700/50",
                   (
                     isMultiSelectMode
                       ? selectedStatusesMult.length === 5
                       : selectedStatus === "ALL"
                   )
-                    ? "text-purple-700 bg-purple-50"
-                    : "text-gray-500",
+                    ? "text-purple-700 bg-purple-50 dark:bg-purple-900/30 dark:text-purple-400"
+                    : "text-gray-500 dark:text-gray-400",
                 )}
               >
                 {isMultiSelectMode ? "تحديد الكل" : "عرض الكل"}
@@ -426,15 +506,15 @@ export default function Home() {
                   }
                 }}
                 className={clsx(
-                  "px-2 py-1 transition-colors rounded hover:bg-gray-50",
+                  "px-2 py-1 transition-colors rounded hover:bg-gray-50 dark:hover:bg-gray-700/50",
                   (
                     isMultiSelectMode
                       ? selectedStatusesMult.length === 4 &&
                         !selectedStatusesMult.includes("DELIVERED")
                       : selectedStatus === "ACTIVE"
                   )
-                    ? "text-purple-700 bg-purple-50"
-                    : "text-gray-500",
+                    ? "text-purple-700 bg-purple-50 dark:bg-purple-900/30 dark:text-purple-400"
+                    : "text-gray-500 dark:text-gray-400",
                 )}
               >
                 قيد التنفيذ
@@ -456,13 +536,13 @@ export default function Home() {
                       setShowFilterDropdown(false);
                     }
                   }}
-                  className="w-full text-right px-4 py-2 hover:bg-gray-50 text-sm flex items-center gap-3 transition-colors outline-none"
+                  className="w-full text-right px-4 py-2 hover:bg-gray-50 dark:hover:bg-gray-700/50 text-sm flex items-center gap-3 transition-colors outline-none"
                 >
                   {isMultiSelectMode ? (
                     isSelected ? (
                       <CheckSquare className="w-4 h-4 text-purple-600 dark:text-purple-400" />
                     ) : (
-                      <Square className="w-4 h-4 text-gray-300" />
+                      <Square className="w-4 h-4 text-gray-300 dark:text-gray-500" />
                     )
                   ) : (
                     <div
@@ -470,7 +550,7 @@ export default function Home() {
                         "w-4 h-4 rounded-full border flex items-center justify-center transition-colors",
                         isSelected
                           ? "border-purple-600 bg-purple-600"
-                          : "border-gray-300 bg-white",
+                          : "border-gray-300 bg-white dark:border-gray-600 dark:bg-gray-800",
                       )}
                     >
                       {isSelected && (
@@ -482,8 +562,8 @@ export default function Home() {
                     className={clsx(
                       "transition-colors",
                       isSelected
-                        ? "text-purple-700 font-bold"
-                        : "text-gray-700",
+                        ? "text-purple-700 font-bold dark:text-purple-400"
+                        : "text-gray-700 dark:text-gray-300",
                     )}
                   >
                     {label}
@@ -536,13 +616,13 @@ export default function Home() {
             const shippingFee = order.shippingFee || 0;
             const deposit = order.deposit || 0;
 
-            const itemsTotal = order.items.reduce(
+            const itemsTotal = (order.items || []).reduce(
               (sum, item) => sum + item.price * item.quantity,
               0,
             );
             const total = itemsTotal + serviceFee + shippingFee;
             const remaining = total - deposit;
-            const itemCount = order.items.reduce(
+            const itemCount = (order.items || []).reduce(
               (acc, i) => acc + i.quantity,
               0,
             );
@@ -570,8 +650,8 @@ export default function Home() {
                         className={clsx(
                           "text-[10px] font-mono font-bold px-2 py-1 rounded-md border transition-colors whitespace-nowrap",
                           copiedOrderId === order.id
-                            ? "bg-green-100 text-green-700 border-green-200"
-                            : "bg-gray-100 text-gray-700 hover:bg-gray-200 border-gray-200",
+                            ? "bg-green-100 text-green-700 border-green-200 dark:bg-green-900/40 dark:text-green-300 dark:border-green-800"
+                            : "bg-gray-100 text-gray-700 hover:bg-gray-200 border-gray-200 dark:bg-gray-800 dark:text-gray-300 dark:border-gray-700 dark:hover:bg-gray-700",
                         )}
                         title="نسخ رقم الطلبية"
                       >
@@ -588,6 +668,22 @@ export default function Home() {
                     </span>
                   </div>
                 </div>
+
+                {order.batchId && (
+                  <div className="flex items-center gap-1 mb-2">
+                     <button 
+                       onClick={(e) => {
+                         e.preventDefault();
+                         e.stopPropagation();
+                         navigate(`/batch/${order.batchId}`);
+                       }}
+                       className="bg-purple-50 text-purple-700 text-[10px] px-2 py-0.5 rounded flex items-center gap-1 font-bold border border-purple-100 hover:bg-purple-100 active:scale-95 transition-all dark:bg-purple-900/30 dark:text-purple-400 dark:border-purple-800"
+                     >
+                       <ShoppingCart className="w-3 h-3" />
+                       سلة: {batches.find(b => b.id === order.batchId)?.batchNumber}
+                     </button>
+                  </div>
+                )}
 
                 <div className="flex items-center gap-4 text-sm text-gray-600 mb-3 bg-gray-50 p-2 text-center rounded-xl dark:text-gray-300 dark:bg-gray-900">
                   <div

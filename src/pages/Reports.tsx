@@ -34,7 +34,7 @@ export default function Reports() {
     let payments = 0;
 
     orders.forEach((o) => {
-      const itemsTotal = o.items.reduce((s, i) => s + i.price * i.quantity, 0);
+      const itemsTotal = (o.items || []).reduce((s, i) => s + i.price * i.quantity, 0);
       const serviceFee = o.serviceFee || 0;
       const shippingFee = o.shippingFee || 0;
       const deposit = o.deposit || 0;
@@ -51,7 +51,7 @@ export default function Reports() {
 
     return orders
       .map((o) => {
-        const itemsTotal = o.items.reduce(
+        const itemsTotal = (o.items || []).reduce(
           (sum, item) => sum + item.price * item.quantity,
           0,
         );
@@ -76,14 +76,14 @@ export default function Reports() {
         if (selectedFinanceModal === "REMAINING") return data.remaining > 0;
         return false;
       })
-      .sort((a, b) => b.order.dates.created - a.order.dates.created);
+      .sort((a, b) => (b.order.dates?.created || 0) - (a.order.dates?.created || 0));
   }, [selectedFinanceModal, orders, customers]);
 
   const statusModalData = useMemo(() => {
     if (!selectedStatusModal) return [];
     return orders
       .filter((o) => o.status === selectedStatusModal)
-      .sort((a, b) => b.dates.created - a.dates.created);
+      .sort((a, b) => (b.dates?.created || 0) - (a.dates?.created || 0));
   }, [selectedStatusModal, orders]);
 
   return (
@@ -110,7 +110,7 @@ export default function Reports() {
                 key={key}
                 onClick={() => setSelectedStatusModal(status)}
                 className={clsx(
-                  "p-4 rounded-2xl border shadow-sm cursor-pointer active:scale-95 transition-transform flex flex-col justify-between",
+                  "p-4 rounded-2xl border shadow-sm cursor-pointer active:scale-95 transition-transform flex flex-col justify-between dark:shadow-none",
                   STATUS_COLORS[status],
                 )}
               >
@@ -238,7 +238,7 @@ export default function Reports() {
                           <h4 className="font-bold text-gray-900 dark:text-white">
                             {customer?.name || "عميل غير معروف"}
                           </h4>
-                          <span className="text-[10px] font-mono font-bold text-gray-500 dark:text-gray-400">
+                          <span className="text-[10px] font-mono font-bold text-gray-500 bg-gray-50 px-1.5 py-0.5 rounded border border-gray-100 mt-1 dark:bg-gray-800 dark:text-gray-300 dark:border-gray-700">
                             #{order.orderNumber}
                           </span>
                         </div>
@@ -293,7 +293,7 @@ export default function Reports() {
                         <span className="font-bold text-gray-900 dark:text-white">
                           {data.customerName}
                         </span>
-                        <span className="text-[10px] font-mono font-bold text-gray-500 bg-gray-50 self-start px-1 mt-1 rounded border border-gray-100 dark:text-gray-400 dark:bg-gray-900 dark:border-gray-700 dark:bg-gray-800">
+                        <span className="text-[10px] font-mono font-bold text-gray-500 bg-gray-50 self-start px-1.5 py-0.5 mt-1 rounded border border-gray-100 dark:bg-gray-800 dark:text-gray-300 dark:border-gray-700">
                           #{data.order.orderNumber}
                         </span>
                       </div>

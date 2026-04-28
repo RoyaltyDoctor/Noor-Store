@@ -17,6 +17,8 @@ import {
   X,
   MapPin,
   FileText,
+  ShoppingCart,
+  Search,
 } from "lucide-react";
 import { OrderStatus, STATUS_COLORS, STATUS_LABELS, Item } from "../types";
 import { v4 as uuidv4 } from "uuid";
@@ -27,7 +29,7 @@ import { TextFitter } from "../components/TextFitter";
 export default function OrderDetails() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { orders, customers, updateOrder, updateOrderStatus, deleteOrder } =
+  const { orders, customers, batches, updateOrder, updateOrderStatus, deleteOrder, addBatch } =
     useStore();
 
   const order = orders.find((o) => o.id === id);
@@ -50,6 +52,11 @@ export default function OrderDetails() {
   const [copiedSkuId, setCopiedSkuId] = useState<string | null>(null);
   const [copiedUrlId, setCopiedUrlId] = useState<string | null>(null);
   const [showCustomerModal, setShowCustomerModal] = useState(false);
+  
+  const [showSelectBatchModal, setShowSelectBatchModal] = useState(false);
+  const [batchSearchQuery, setBatchSearchQuery] = useState("");
+  const [showSelectCustomerModal, setShowSelectCustomerModal] = useState(false);
+  const [customerSearchQuery, setCustomerSearchQuery] = useState("");
 
   if (!order) return <div className="p-4 text-center">الطلب غير موجود</div>;
 
@@ -63,7 +70,7 @@ export default function OrderDetails() {
   const currentStatusIndex = statuses.indexOf(order.status);
 
   // Calculate totals with fallbacks for older data where fees might be undefined
-  const itemsTotal = order.items.reduce(
+  const itemsTotal = (order.items || []).reduce(
     (sum, item) => sum + item.price * item.quantity,
     0,
   );
@@ -273,8 +280,8 @@ export default function OrderDetails() {
                   className={clsx(
                     "text-xs font-mono font-bold px-3 py-1.5 rounded-lg border transition-colors shadow-sm",
                     copiedOrderId === order.id
-                      ? "bg-green-100 text-green-700 border-green-200 dark:bg-green-900/40 dark:text-green-300"
-                      : "bg-gray-100 text-gray-700 hover:bg-gray-200 border-gray-200 dark:bg-gray-700 dark:text-gray-200 dark:border-gray-600 dark:hover:bg-gray-600",
+                      ? "bg-green-100 text-green-700 border-green-200 dark:bg-green-900/40 dark:text-green-300 dark:border-green-800"
+                      : "bg-gray-100 text-gray-700 hover:bg-gray-200 border-gray-200 dark:bg-gray-800 dark:text-gray-300 dark:border-gray-700 dark:hover:bg-gray-700",
                   )}
                   title="نسخ رقم الطلبية"
                 >
@@ -711,7 +718,7 @@ export default function OrderDetails() {
                 <div className="flex justify-between items-center">
                   <span className="text-white/70">
                     إجمالي المنتجات (
-                    {order.items.reduce((acc, i) => acc + i.quantity, 0)} قطعة):
+                    {(order.items || []).reduce((acc, i) => acc + i.quantity, 0)} قطعة):
                   </span>
                   <span className="font-bold">{itemsTotal.toFixed(2)}</span>
                 </div>
@@ -850,22 +857,39 @@ export default function OrderDetails() {
             </div>
 
             <div className="bg-white p-4 rounded-2xl border border-gray-100 shadow-sm dark:bg-gray-800 dark:border-gray-700 dark:shadow-none">
+              <h4 className="font-bold text-gray-900 mb-3 dark:text-white flex items-center gap-2">
+                <ShoppingCart className="w-4 h-4 text-purple-500" />
+                ارتباط الطلبية بسلة / شحنة
+              </h4>
+              <button
+                onClick={() => setShowSelectBatchModal(true)}
+                className="w-full text-right bg-gray-50 border border-gray-200 rounded-xl px-3 py-3 hover:bg-gray-100 flex justify-between items-center dark:bg-gray-900 dark:border-gray-600 dark:hover:bg-gray-800"
+              >
+                <span className="text-gray-900 dark:text-white font-medium">
+                  {order.batchId 
+                    ? (() => {
+                        const b = batches.find(b => b.id === order.batchId);
+                        return b ? `${b.batchNumber} ` + (b.couponCode ? `(${b.couponCode})` : "") : "السلة محذوفة";
+                      })()
+                    : "بدون سلة (مستقلة)"}
+                </span>
+                <ChevronDown className="w-5 h-5 text-gray-400" />
+              </button>
+            </div>
+
+            <div className="bg-white p-4 rounded-2xl border border-gray-100 shadow-sm dark:bg-gray-800 dark:border-gray-700 dark:shadow-none">
               <h4 className="font-bold text-gray-900 mb-3 dark:text-white">
                 تغيير العميل المرتبط بالطلبية
               </h4>
-              <select
-                value={order.customerId}
-                onChange={(e) =>
-                  updateOrder(order.id, { customerId: e.target.value })
-                }
-                className="w-full bg-gray-50 border border-gray-200 rounded-xl px-3 py-3 focus:ring-2 focus:ring-purple-500 outline-none dark:bg-gray-900 dark:border-gray-600"
+              <button
+                onClick={() => setShowSelectCustomerModal(true)}
+                className="w-full text-right bg-gray-50 border border-gray-200 rounded-xl px-3 py-3 hover:bg-gray-100 flex justify-between items-center dark:bg-gray-900 dark:border-gray-600 dark:hover:bg-gray-800"
               >
-                {customers.map((c) => (
-                  <option key={c.id} value={c.id}>
-                    {c.name}
-                  </option>
-                ))}
-              </select>
+                <span className="text-gray-900 dark:text-white font-medium">
+                  {customers.find(c => c.id === order.customerId)?.name || "عميل غير معروف"}
+                </span>
+                <ChevronDown className="w-5 h-5 text-gray-400" />
+              </button>
             </div>
           </div>
         )}
@@ -1030,6 +1054,126 @@ export default function OrderDetails() {
           </div>
         </div>
       )}
+      {/* Select Batch Modal */}
+      {showSelectBatchModal && (
+        <div className="fixed inset-0 z-[60] bg-black/50 flex items-end sm:items-center justify-center sm:p-4 pb-safe">
+          <div className="bg-white w-full sm:max-w-md sm:rounded-2xl rounded-t-2xl p-4 shadow-xl max-h-[85vh] flex flex-col dark:bg-gray-800">
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="font-bold text-lg text-gray-900 dark:text-white flex items-center gap-2">
+                <ShoppingCart className="w-5 h-5 text-purple-600" />
+                ارتباط بسلة
+              </h3>
+              <button
+                onClick={() => setShowSelectBatchModal(false)}
+                className="w-8 h-8 flex items-center justify-center bg-gray-100 rounded-full text-gray-600 hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            
+            <button
+              onClick={() => {
+                const bId = addBatch();
+                updateOrder(order.id, { batchId: bId });
+                setShowSelectBatchModal(false);
+              }}
+              className="w-full mb-3 bg-purple-50 hover:bg-purple-100 text-purple-700 rounded-xl px-4 py-3 font-bold flex items-center justify-center gap-2 transition-colors dark:bg-purple-900/30 dark:text-purple-400 dark:hover:bg-purple-900/50"
+            >
+              <Plus className="w-5 h-5" /> إنشاء سلة جديدة وربط الطلبية بها
+            </button>
+            <div className="relative mb-3 flex-shrink-0">
+              <Search className="w-4 h-4 absolute right-3 top-1/2 -translate-y-1/2 text-gray-400" />
+              <input
+                type="text"
+                placeholder="بحث عن سلة..."
+                value={batchSearchQuery}
+                onChange={(e) => setBatchSearchQuery(e.target.value)}
+                className="w-full bg-gray-50 border border-gray-200 rounded-xl pr-9 pl-4 py-2.5 outline-none focus:ring-2 focus:ring-purple-500 dark:bg-gray-900 dark:border-gray-700 dark:text-white"
+              />
+            </div>
+            <div className="overflow-y-auto flex-1 space-y-2 pr-1 custom-scrollbar">
+              <div 
+                onClick={() => {
+                  updateOrder(order.id, { batchId: undefined });
+                  setShowSelectBatchModal(false);
+                }}
+                className={`p-3 rounded-xl border cursor-pointer flex justify-between items-center transition-colors ${!order.batchId ? 'border-purple-500 bg-purple-50 dark:bg-purple-900/20' : 'border-gray-100 hover:bg-gray-50 dark:border-gray-700 dark:hover:bg-gray-700'}`}
+              >
+                <div className="font-bold text-gray-900 dark:text-white">بدون سلة (مستقلة)</div>
+                {!order.batchId && <Check className="w-5 h-5 text-purple-600" />}
+              </div>
+              {batches
+                .filter(b => b.batchNumber.toLowerCase().includes(batchSearchQuery.toLowerCase()) || (b.couponCode && b.couponCode.toLowerCase().includes(batchSearchQuery.toLowerCase())))
+                .map(b => (
+                <div 
+                  key={b.id}
+                  onClick={() => {
+                    updateOrder(order.id, { batchId: b.id });
+                    setShowSelectBatchModal(false);
+                  }}
+                  className={`p-3 rounded-xl border cursor-pointer flex justify-between items-center transition-colors ${order.batchId === b.id ? 'border-purple-500 bg-purple-50 dark:bg-purple-900/20' : 'border-gray-100 hover:bg-gray-50 dark:border-gray-700 dark:hover:bg-gray-700'}`}
+                >
+                  <div>
+                    <div className="font-bold text-gray-900 dark:text-white flex items-center gap-2">
+                       {b.batchNumber}
+                       {b.couponCode && <span className="text-[10px] bg-yellow-100 text-yellow-800 px-1.5 py-0.5 rounded border border-yellow-200 font-mono dark:bg-yellow-900/30 dark:text-yellow-400 dark:border-yellow-700">{b.couponCode}</span>}
+                    </div>
+                  </div>
+                  {order.batchId === b.id && <Check className="w-5 h-5 text-purple-600" />}
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Select Customer Modal */}
+      {showSelectCustomerModal && (
+        <div className="fixed inset-0 z-[60] bg-black/50 flex items-end sm:items-center justify-center sm:p-4 pb-safe">
+          <div className="bg-white w-full sm:max-w-md sm:rounded-2xl rounded-t-2xl p-4 shadow-xl max-h-[85vh] flex flex-col dark:bg-gray-800">
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="font-bold text-lg text-gray-900 dark:text-white">تغيير العميل المرتبط بالطلبية</h3>
+              <button
+                onClick={() => setShowSelectCustomerModal(false)}
+                className="w-8 h-8 flex items-center justify-center bg-gray-100 rounded-full text-gray-600 hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <div className="relative mb-3 flex-shrink-0">
+              <Search className="w-4 h-4 absolute right-3 top-1/2 -translate-y-1/2 text-gray-400" />
+              <input
+                type="text"
+                placeholder="بحث عن عميل..."
+                value={customerSearchQuery}
+                onChange={(e) => setCustomerSearchQuery(e.target.value)}
+                className="w-full bg-gray-50 border border-gray-200 rounded-xl pr-9 pl-4 py-2.5 outline-none focus:ring-2 focus:ring-purple-500 dark:bg-gray-900 dark:border-gray-700 dark:text-white"
+              />
+            </div>
+            <div className="overflow-y-auto flex-1 space-y-2 pr-1 custom-scrollbar">
+              {customers
+                .filter(c => c.name.toLowerCase().includes(customerSearchQuery.toLowerCase()) || (c.phone && c.phone.includes(customerSearchQuery)))
+                .map(c => (
+                <div 
+                  key={c.id}
+                  onClick={() => {
+                    updateOrder(order.id, { customerId: c.id });
+                    setShowSelectCustomerModal(false);
+                  }}
+                  className={`p-3 rounded-xl border cursor-pointer flex justify-between items-center transition-colors ${order.customerId === c.id ? 'border-purple-500 bg-purple-50 dark:bg-purple-900/20' : 'border-gray-100 hover:bg-gray-50 dark:border-gray-700 dark:hover:bg-gray-700'}`}
+                >
+                  <div>
+                    <div className="font-bold text-gray-900 dark:text-white">{c.name}</div>
+                    {c.phone && <div className="text-xs text-gray-500 mt-0.5" dir="ltr">{c.phone}</div>}
+                  </div>
+                  {order.customerId === c.id && <Check className="w-5 h-5 text-purple-600" />}
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+
     </div>
   );
 }

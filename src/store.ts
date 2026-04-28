@@ -2,10 +2,10 @@ import { create } from "zustand";
 import { persist, createJSONStorage, StateStorage } from "zustand/middleware";
 import { get, set, del } from "idb-keyval";
 import { v4 as uuidv4 } from "uuid";
-import { Customer, Order, OrderStatus } from "./types";
+import { Customer, Order, OrderStatus, Batch } from "./types";
 
 import { setDoc, doc, deleteDoc } from "firebase/firestore";
-import { db, auth } from "./firebase";
+import { db, auth, handleFirestoreError, OperationType } from "./firebase";
 
 const isAutoSyncEnabled = () => localStorage.getItem("autoSync") === "true";
 
@@ -25,7 +25,7 @@ const pushToFb = (collectionName: string, id: string, data: any) => {
       doc(db, collectionName, id),
       { ...data, userId: user.uid },
       { merge: true },
-    ).catch(console.error);
+    ).catch((err) => handleFirestoreError(err, OperationType.WRITE, collectionName));
   }
 };
 
@@ -41,7 +41,7 @@ const deleteFromFb = (collectionName: string, id: string) => {
   }
   const user = auth.currentUser;
   if (user) {
-    deleteDoc(doc(db, collectionName, id)).catch(console.error);
+    deleteDoc(doc(db, collectionName, id)).catch((err) => handleFirestoreError(err, OperationType.DELETE, collectionName));
   }
 };
 
@@ -65,6 +65,8 @@ export type DateFilterType =
   | "THIS_MONTH"
   | "CUSTOM";
 
+export type SortOptionHome = "NEWEST" | "OLDEST" | "HIGHEST_PRICE" | "LOWEST_PRICE";
+
 interface FilterState {
   searchQuery: string;
   isMultiSelectMode: boolean;
@@ -74,6 +76,7 @@ interface FilterState {
   customStartDate: string;
   customEndDate: string;
   scrollPosition: number;
+  sortOption: SortOptionHome;
   setSearchQuery: (val: string) => void;
   setIsMultiSelectMode: (val: boolean) => void;
   setSelectedStatus: (val: OrderStatus | "ALL" | "ACTIVE") => void;
@@ -82,8 +85,54 @@ interface FilterState {
   setCustomStartDate: (val: string) => void;
   setCustomEndDate: (val: string) => void;
   setScrollPosition: (val: number) => void;
+  setSortOption: (val: SortOptionHome) => void;
   reset: () => void;
 }
+
+export type SortOptionBatches = "NEWEST" | "OLDEST" | "MOST_ORDERS" | "LEAST_ORDERS" | "HIGHEST_COST" | "LOWEST_COST";
+
+interface BatchesFilterState {
+  searchQuery: string;
+  selectedStatus: OrderStatus | "ALL" | "ACTIVE";
+  sortOption: SortOptionBatches;
+  setSearchQuery: (val: string) => void;
+  setSelectedStatus: (val: OrderStatus | "ALL" | "ACTIVE") => void;
+  setSortOption: (val: SortOptionBatches) => void;
+}
+
+export const useBatchesFilterStore = create<BatchesFilterState>((set) => ({
+  searchQuery: "",
+  selectedStatus: "ACTIVE",
+  sortOption: "NEWEST",
+  setSearchQuery: (val) => set({ searchQuery: val }),
+  setSelectedStatus: (val) => set({ selectedStatus: val }),
+  setSortOption: (val) => set({ sortOption: val }),
+}));
+
+export type SortOptionCustomers =
+  | "ALPHABETICAL"
+  | "CREATED_AT"
+  | "UPDATED_AT"
+  | "PENDING_ORDERS"
+  | "TOTAL_ORDERS";
+
+interface CustomersFilterState {
+  searchQuery: string;
+  sortBy: SortOptionCustomers;
+  sortDirection: "asc" | "desc";
+  setSearchQuery: (val: string) => void;
+  setSortBy: (val: SortOptionCustomers) => void;
+  setSortDirection: (val: "asc" | "desc") => void;
+}
+
+export const useCustomersFilterStore = create<CustomersFilterState>((set) => ({
+  searchQuery: "",
+  sortBy: "UPDATED_AT",
+  sortDirection: "desc",
+  setSearchQuery: (val) => set({ searchQuery: val }),
+  setSortBy: (val) => set({ sortBy: val }),
+  setSortDirection: (val) => set({ sortDirection: val }),
+}));
 
 export const useFilterStore = create<FilterState>((set) => ({
   searchQuery: "",
@@ -94,6 +143,7 @@ export const useFilterStore = create<FilterState>((set) => ({
   customStartDate: "",
   customEndDate: "",
   scrollPosition: 0,
+  sortOption: "NEWEST",
   setSearchQuery: (val) => set({ searchQuery: val }),
   setIsMultiSelectMode: (val) => set({ isMultiSelectMode: val }),
   setSelectedStatus: (val) => set({ selectedStatus: val }),
@@ -102,6 +152,7 @@ export const useFilterStore = create<FilterState>((set) => ({
   setCustomStartDate: (val) => set({ customStartDate: val }),
   setCustomEndDate: (val) => set({ customEndDate: val }),
   setScrollPosition: (val) => set({ scrollPosition: val }),
+  setSortOption: (val) => set({ sortOption: val }),
   reset: () =>
     set({
       searchQuery: "",
@@ -111,12 +162,14 @@ export const useFilterStore = create<FilterState>((set) => ({
       dateFilter: "ALL",
       customStartDate: "",
       customEndDate: "",
+      sortOption: "NEWEST",
     }),
 }));
 
 interface AppState {
   customers: Customer[];
   orders: Order[];
+  batches: Batch[];
   deletedOrders: { orderNumber: string; deletedAt: number }[];
   syncQueue: {
     id: string;
@@ -137,10 +190,16 @@ interface AppState {
   deleteOrder: (id: string) => void;
   updateOrderStatus: (id: string, status: OrderStatus) => void;
 
+  // Batch Actions
+  addBatch: () => string;
+  updateBatch: (id: string, data: Partial<Batch>) => void;
+  deleteBatch: (id: string, deleteOrders?: boolean) => void;
+
   // Backup Merge
   mergeBackup: (backupData: {
     customers?: Customer[];
     orders?: Order[];
+    batches?: Batch[];
     deletedOrders?: { orderNumber: string; deletedAt: number }[];
   }) => void;
 }
@@ -150,9 +209,121 @@ export const useStore = create<AppState>()(
     (set, get) => ({
       customers: [],
       orders: [],
+      batches: [],
       deletedOrders: [],
       syncQueue: [],
       clearSyncQueue: () => set({ syncQueue: [] }),
+
+      addBatch: () => {
+        const id = uuidv4();
+        const state = get();
+        
+        let batchNumber = `B-${Math.floor(1000 + Math.random() * 9000)}`;
+        while (state.batches.some(b => b.batchNumber === batchNumber)) {
+          batchNumber = `B-${Math.floor(1000 + Math.random() * 9000)}`;
+        }
+
+        const newBatch: Batch = {
+          id,
+          batchNumber,
+          status: "PENDING",
+          couponEnabled: false,
+          bankFees: 0,
+          dates: { created: Date.now(), updated: Date.now() },
+        };
+
+        set((state) => ({
+          batches: [newBatch, ...state.batches],
+        }));
+
+        pushToFb("batches", id, newBatch);
+        return id;
+      },
+
+      updateBatch: (id, data) =>
+        set((state) => {
+          let updatedOrders = [...state.orders];
+          let updatedBatches = state.batches.map((b) => {
+            if (b.id === id) {
+              const updated = {
+                ...b,
+                ...data,
+                dates: { ...(b.dates || { created: Date.now() }), updated: Date.now() },
+              };
+              pushToFb("batches", id, updated);
+
+              // Sync status and trackingNumber to related orders
+              if (data.status !== undefined || data.trackingNumber !== undefined) {
+                updatedOrders = updatedOrders.map(o => {
+                  if (o.batchId === id) {
+                    const updatedOrder = { ...o };
+                    let changed = false;
+                    if (data.status !== undefined && updatedOrder.status !== data.status) {
+                      updatedOrder.status = data.status as OrderStatus; // Ensure type
+                      changed = true;
+                    }
+                    if (data.trackingNumber !== undefined && updatedOrder.trackingNumber !== data.trackingNumber) {
+                      updatedOrder.trackingNumber = data.trackingNumber;
+                      changed = true;
+                    }
+                    if (changed) {
+                      updatedOrder.updatedAt = Date.now();
+                      pushToFb("orders", o.id, updatedOrder);
+                      return updatedOrder;
+                    }
+                  }
+                  return o;
+                });
+              }
+
+              return updated;
+            }
+            return b;
+          });
+          return { batches: updatedBatches, orders: updatedOrders };
+        }),
+
+      deleteBatch: (id, deleteOrders = false) =>
+        set((state) => {
+          deleteFromFb("batches", id);
+          
+          let updatedOrders = [...state.orders];
+          let updatedDeletedOrders = [...(state.deletedOrders || [])];
+
+          // Handle orders linked to this batch
+          const now = Date.now();
+          updatedOrders = state.orders.map((o) => {
+            if (o.batchId === id) {
+              if (deleteOrders) {
+                // We are deleting the order
+                deleteFromFb("orders", o.id);
+                updatedDeletedOrders.push({
+                  orderNumber: o.orderNumber || "",
+                  deletedAt: now,
+                });
+                if (o.orderNumber) {
+                   pushToFb("deletedOrders", o.id, {
+                     orderNumber: o.orderNumber,
+                     deletedAt: now,
+                   });
+                }
+                return null as any; // will filter out below
+              } else {
+                // We only unlink the order
+                const updated = { ...o, batchId: undefined };
+                pushToFb("orders", o.id, updated);
+                return updated;
+              }
+            }
+            return o;
+          }).filter(Boolean);
+
+          return {
+            batches: state.batches.filter((b) => b.id !== id),
+            orders: updatedOrders,
+            deletedOrders: updatedDeletedOrders
+          };
+        }),
 
       addCustomer: (data) => {
         const id = uuidv4();
@@ -306,8 +477,8 @@ export const useStore = create<AppState>()(
           const updatedOrders = state.orders.map((o) => {
             if (o.id === id) {
               const updates: Partial<Order> = { status, updatedAt: Date.now() };
-              if (status === "ORDERED" && !o.dates.ordered) {
-                updates.dates = { ...o.dates, ordered: Date.now() };
+              if (status === "ORDERED" && !o.dates?.ordered) {
+                updates.dates = { ...(o.dates || { created: Date.now() }), ordered: Date.now() };
               }
               const updated = { ...o, ...updates };
               pushToFb("orders", id, updated);
@@ -322,8 +493,9 @@ export const useStore = create<AppState>()(
         set((state) => {
           let updatedCustomers = [...state.customers];
           let updatedOrders = [...state.orders];
+          let updatedBatches = [...state.batches];
 
-          const { customers = [], orders = [] } = backupData;
+          const { customers = [], orders = [], batches = [] } = backupData;
 
           // Merge Customers
           customers.forEach((importedC) => {
@@ -359,7 +531,23 @@ export const useStore = create<AppState>()(
             }
           });
 
-          return { customers: updatedCustomers, orders: updatedOrders };
+          // Merge Batches
+          batches.forEach((importedB) => {
+            const index = updatedBatches.findIndex((b) => b.id === importedB.id);
+            if (index === -1) {
+              updatedBatches.push(importedB);
+              pushToFb("batches", importedB.id, importedB);
+            } else {
+              const currentT = updatedBatches[index].dates?.updated || 0;
+              const importedT = importedB.dates?.updated || 0;
+              if (importedT > currentT) {
+                updatedBatches[index] = importedB;
+                pushToFb("batches", importedB.id, importedB);
+              }
+            }
+          });
+
+          return { customers: updatedCustomers, orders: updatedOrders, batches: updatedBatches };
         }),
     }),
     {
