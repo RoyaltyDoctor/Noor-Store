@@ -219,6 +219,20 @@ export default function Layout() {
         {/* Bottom Navigation */}
         <nav className="absolute bottom-0 w-full bg-white border-t border-gray-200 px-3 py-3 flex justify-between items-center z-20 pb-safe dark:bg-gray-800 dark:border-gray-700 dark:border-gray-600">
           <NavLink
+            to="/customers"
+            className={({ isActive }) =>
+              `flex flex-col items-center gap-1 ${
+                isActive
+                  ? "text-purple-600 dark:text-purple-400"
+                  : "text-gray-400 hover:text-gray-600"
+              }`
+            }
+          >
+            <Users className="w-6 h-6" />
+            <span className="text-[10px] font-medium">العملاء</span>
+          </NavLink>
+
+          <NavLink
             to="/batches"
             className={({ isActive }) =>
               `flex flex-col items-center gap-1 ${
@@ -244,20 +258,6 @@ export default function Layout() {
           >
             <Home className="w-6 h-6" />
             <span className="text-[10px] font-medium">الطلبيات</span>
-          </NavLink>
-
-          <NavLink
-            to="/customers"
-            className={({ isActive }) =>
-              `flex flex-col items-center gap-1 ${
-                isActive
-                  ? "text-purple-600 dark:text-purple-400"
-                  : "text-gray-400 hover:text-gray-600"
-              }`
-            }
-          >
-            <Users className="w-6 h-6" />
-            <span className="text-[10px] font-medium">العملاء</span>
           </NavLink>
 
           <NavLink

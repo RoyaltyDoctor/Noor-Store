@@ -127,7 +127,7 @@ interface CustomersFilterState {
 
 export const useCustomersFilterStore = create<CustomersFilterState>((set) => ({
   searchQuery: "",
-  sortBy: "UPDATED_AT",
+  sortBy: "CREATED_AT",
   sortDirection: "desc",
   setSearchQuery: (val) => set({ searchQuery: val }),
   setSortBy: (val) => set({ sortBy: val }),

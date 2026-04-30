@@ -87,12 +87,17 @@ export default function Reports() {
   }, [selectedStatusModal, orders]);
 
   return (
-    <div className="p-4 space-y-6 pb-20">
-      <div className="flex items-center gap-2 mb-4">
-        <BarChart3 className="w-6 h-6 text-purple-600 dark:text-purple-400" />
-        <h2 className="text-xl font-bold text-gray-900 dark:text-white">
-          التقارير والنظرة العامة
-        </h2>
+    <div className="p-4 space-y-3 pb-24 min-h-full dark:bg-gray-900" dir="rtl">
+      <div className="flex justify-between items-start gap-2 mb-4">
+        <div className="flex-1 min-w-0">
+          <h2 className="text-lg sm:text-xl md:text-2xl font-bold text-gray-900 flex items-center gap-1 sm:gap-2 dark:text-white">
+            <BarChart3 className="w-5 h-5 sm:w-6 sm:h-6 text-purple-600 dark:text-purple-400 flex-shrink-0" />
+            <span className="truncate">التقارير والنظرة العامة</span>
+          </h2>
+          <p className="text-xs sm:text-sm text-gray-500 mt-1 dark:text-gray-400 truncate">
+            نظرة عامة على احصائيات الطلبيات والمبيعات
+          </p>
+        </div>
       </div>
 
       {/* Status Overview */}
@@ -231,7 +236,7 @@ export default function Reports() {
                     <Link
                       key={order.id}
                       to={`/order/${order.id}`}
-                      className="block bg-white p-4 rounded-xl border border-gray-100 shadow-sm active:scale-95 transition-transform dark:bg-gray-800 dark:border-gray-700 dark:shadow-none"
+                      className="block bg-white p-4 rounded-2xl border border-gray-100 shadow-sm active:scale-95 transition-transform dark:bg-gray-800 dark:border-gray-700 dark:shadow-none"
                     >
                       <div className="flex justify-between items-start mb-2">
                         <div>
@@ -286,7 +291,7 @@ export default function Reports() {
                   <Link
                     key={data.order.id}
                     to={`/order/${data.order.id}`}
-                    className="block bg-white p-4 rounded-xl border border-gray-100 shadow-sm active:scale-95 transition-transform dark:bg-gray-800 dark:border-gray-700 dark:shadow-none"
+                    className="block bg-white p-4 rounded-2xl border border-gray-100 shadow-sm active:scale-95 transition-transform dark:bg-gray-800 dark:border-gray-700 dark:shadow-none"
                   >
                     <div className="flex justify-between items-start mb-1">
                       <div className="flex flex-col">

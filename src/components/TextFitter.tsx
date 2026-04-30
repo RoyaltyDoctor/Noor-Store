@@ -1,4 +1,4 @@
-import React, { useRef, useState, useEffect } from "react";
+import React, { useRef, useState, useLayoutEffect, useEffect } from "react";
 
 export const TextFitter: React.FC<{
   children: React.ReactNode;
@@ -8,31 +8,62 @@ export const TextFitter: React.FC<{
   const containerRef = useRef<HTMLDivElement>(null);
   const [scale, setScale] = useState(1);
 
-  const updateScale = () => {
+  useLayoutEffect(() => {
     if (!containerRef.current) return;
     const container = containerRef.current;
     const content = container.firstElementChild as HTMLElement;
     if (!content) return;
 
-    const containerWidth = container.offsetWidth;
-    // adding a tiny buffer (1px) to avoid precision rounding issues that could cause clip
-    const contentWidth = content.scrollWidth + 1;
+    let animationFrameId: number;
 
-    if (contentWidth > containerWidth && containerWidth > 0) {
-      setScale(containerWidth / contentWidth);
-    } else {
-      setScale(1);
-    }
-  };
+    const updateScale = () => {
+      // Reset scale to 1 temporarily to get the natural unscaled width of the content
+      // and the natural width of the container
+      
+      const containerWidth = container.offsetWidth;
+      // We must measure the content width WITHOUT the scale applied, 
+      // but since scale is applied dynamically via JS, we should just read scrollWidth / currentScale ?
+      // No, scrollWidth gets floor'd. It's safer to read the scrollWidth if we hadn't scaled it.
+      // Easiest is to measure the bounding rect and divide by current scale.
+      
+      // Let's use getBoundingClientRect() to avoid integer rounding issues
+      const contentRect = content.getBoundingClientRect();
+      // current visual width of the element:
+      const currentVisualWidth = contentRect.width;
+      
+      // The unscaled width is:
+      let unscaledContentWidth = currentVisualWidth;
+      
+      // The component applies transform: scale() to the element. 
+      // Fortunately getBoundingClientRect includes transforms. 
+      // However scrollWidth is unaffected by transform scale (it reports pre-transform width).
+      // Let's use scrollWidth for the content to guarantee we capture overflowing text!
+      const contentWidth = content.scrollWidth + 1; // 1px buffer
 
-  useEffect(() => {
+      if (contentWidth > containerWidth && containerWidth > 0) {
+        setScale(containerWidth / contentWidth);
+      } else {
+        setScale(1);
+      }
+    };
+
+    const resizeObserver = new ResizeObserver(() => {
+      // Debounce slightly using requestAnimationFrame to prevent 'ResizeObserver loop limit exceeded'
+      cancelAnimationFrame(animationFrameId);
+      animationFrameId = requestAnimationFrame(updateScale);
+    });
+
+    resizeObserver.observe(container);
+    resizeObserver.observe(content);
+
+    // Initial check
     updateScale();
-  }, [children]);
 
-  useEffect(() => {
-    window.addEventListener("resize", updateScale);
-    return () => window.removeEventListener("resize", updateScale);
-  }, []);
+    return () => {
+      resizeObserver.disconnect();
+      cancelAnimationFrame(animationFrameId);
+    };
+  }, [children]);
 
   let justifyContent = "flex-start";
   if (origin === "center") justifyContent = "center";
@@ -56,3 +87,4 @@ export const TextFitter: React.FC<{
     </div>
   );
 };
+

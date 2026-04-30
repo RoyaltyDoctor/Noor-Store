@@ -131,40 +131,44 @@ export default function Batches() {
   }, [batches, orders, searchQuery, selectedStatus, sortOption]);
 
   return (
-    <div className="p-4 space-y-4 min-h-full pb-24 dark:bg-gray-900" dir="rtl">
+    <div className="p-4 space-y-3 min-h-full pb-24 dark:bg-gray-900" dir="rtl">
       {/* Header */}
-      <div className="flex justify-between items-center mb-2 gap-2">
-        <h2 className="text-lg sm:text-xl font-bold text-gray-900 flex items-center gap-1.5 sm:gap-2 dark:text-white overflow-hidden">
-          <ShoppingCart className="w-5 h-5 sm:w-6 sm:h-6 text-purple-600 dark:text-purple-400 flex-shrink-0" />
-          <span className="truncate">إدارة السلات والشحنات</span>
-          <span className="text-xs sm:text-sm font-normal text-gray-500 bg-gray-100 px-2 py-0.5 rounded-full dark:text-gray-400 dark:bg-gray-700 flex-shrink-0">
-            ({batchesWithStats.length})
-          </span>
-        </h2>
+      <div className="flex justify-between items-start gap-2">
+        <div className="flex-1 min-w-0">
+          <h2 className="text-lg sm:text-xl md:text-2xl font-bold text-gray-900 flex items-center gap-1 sm:gap-2 dark:text-white">
+            <ShoppingCart className="w-5 h-5 sm:w-6 sm:h-6 text-purple-600 dark:text-purple-400 flex-shrink-0" />
+            <span className="truncate">إدارة السلات والشحنات</span>
+          </h2>
+          <p className="text-xs sm:text-sm text-gray-500 mt-1 dark:text-gray-400 truncate">
+            لديك {batches.filter(b => b.status !== "DELIVERED").length} سلة مفتوحة
+          </p>
+        </div>
         <button
           onClick={handleCreate}
-          className="whitespace-nowrap flex-shrink-0 bg-gray-900 text-white px-3 py-2 rounded-xl text-xs sm:text-sm font-bold flex items-center gap-1 active:scale-95 transition-transform shadow-md dark:shadow-none dark:bg-purple-600 dark:hover:bg-purple-700"
+          className="flex-shrink-0 whitespace-nowrap bg-gray-900 text-white px-3 py-2 rounded-xl text-xs sm:text-sm font-bold flex items-center gap-1 active:scale-95 transition-transform shadow-md dark:shadow-none dark:bg-purple-600 dark:hover:bg-purple-700"
         >
           <Plus className="w-4 h-4" /> سلة جديدة
         </button>
       </div>
-      
+
       <div className="flex items-center gap-2 relative mb-4" ref={dropdownsContainerRef}>
-          <div className="relative flex-1 cursor-text">
-            <Search className="w-4 h-4 absolute right-3 top-1/2 -translate-y-1/2 text-gray-400" />
-            <input
-              type="text"
-              placeholder="بحث برقم السلة أو الكوبون أو رقم التتبع..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-3 pr-9 py-2 bg-white border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-purple-500 outline-none transition-all placeholder:text-gray-400 dark:bg-gray-800 dark:border-gray-600"
-            />
-          </div>
+        <div className="relative flex-1 cursor-text">
+          <Search className="w-4 h-4 absolute right-3 top-1/2 -translate-y-1/2 text-gray-400" />
+          <input
+            type="text"
+            placeholder="بحث برقم السلة أو الكوبون أو رقم التتبع..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="w-full pl-3 pr-9 py-2 bg-white border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-purple-500 outline-none transition-all placeholder:text-gray-400 dark:bg-gray-800 dark:border-gray-600 dark:text-white"
+          />
+        </div>
+        
+        <div className="relative">
           <button
             onClick={() => { setShowSortDropdown(!showSortDropdown); setShowFilters(false); }}
             className={`p-2 rounded-xl border transition-colors relative ${
               sortOption !== "NEWEST"
-                ? "bg-purple-50 border-purple-200 text-purple-600 dark:bg-purple-900/30 dark:border-purple-800 dark:text-purple-400" 
+                ? "bg-purple-50 border-purple-200 text-purple-600 dark:bg-purple-900/30 dark:border-purple-800 dark:text-purple-400"
                 : "bg-white border-gray-200 text-gray-600 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-300"
             }`}
             title="تغيير الترتيب"
@@ -174,23 +178,12 @@ export default function Batches() {
               <div className="absolute top-1 right-1 w-2 h-2 bg-purple-500 rounded-full border border-white"></div>
             )}
           </button>
-          <button
-            onClick={() => { setShowFilters(!showFilters); setShowSortDropdown(false); }}
-            className={`p-2 rounded-xl border transition-colors ${
-              selectedStatus !== "ACTIVE"
-                ? "bg-purple-50 border-purple-200 text-purple-600 dark:bg-purple-900/30 dark:border-purple-800 dark:text-purple-400" 
-                : "bg-white border-gray-200 text-gray-600 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-300"
-            }`}
-            title="تصفية حسب الحالة"
-          >
-            <Filter className="w-5 h-5" />
-          </button>
 
           {/* Sort Dropdown Popup */}
           {showSortDropdown && (
             <div className="absolute top-12 left-12 w-48 bg-white border border-gray-200 rounded-xl shadow-xl z-20 py-2 dark:bg-gray-800 dark:border-gray-600 dark:shadow-none">
               <div className="px-4 py-2 border-b border-gray-100 mb-1 dark:border-gray-700">
-                <span className="text-xs font-bold text-gray-500 dark:text-gray-400">
+                <span className="text-sm font-bold text-gray-500 dark:text-gray-400">
                   ترتيب السلات
                 </span>
               </div>
@@ -209,7 +202,7 @@ export default function Batches() {
                     setShowSortDropdown(false);
                   }}
                   className={clsx(
-                    "w-full text-right px-4 py-2 text-sm flex items-center gap-2",
+                    "w-full text-right px-4 py-2 text-sm sm:text-base flex items-center gap-2",
                     sortOption === option.id
                       ? "bg-purple-50 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300 font-bold"
                       : "text-gray-700 hover:bg-gray-50 dark:text-gray-300 dark:hover:bg-gray-700/50",
@@ -224,6 +217,32 @@ export default function Batches() {
             </div>
           )}
 
+          
+          <button
+            onClick={() => { setShowFilters(!showFilters); setShowSortDropdown(false); }}
+            className={clsx(
+              "p-2 rounded-xl border transition-colors relative",
+              (
+                isMultiSelectMode
+                  ? selectedStatusesMult.length < 5
+                  : selectedStatus !== "ACTIVE"
+              )
+                ? "bg-purple-50 border-purple-200 text-purple-600 dark:bg-purple-900/30 dark:border-purple-800 dark:text-purple-400"
+                : "bg-white border-gray-200 text-gray-600 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-300",
+            )}
+            title="تصفية حسب الحالة"
+          >
+            <Filter className="w-5 h-5" />
+            {isMultiSelectMode ? (
+              selectedStatusesMult.length < 5 && (
+                <div className="absolute top-1 right-1 w-2 h-2 bg-purple-500 rounded-full border border-white"></div>
+              )
+            ) : (
+              selectedStatus !== "ACTIVE" && (
+                <div className="absolute top-1 right-1 w-2 h-2 bg-purple-500 rounded-full border border-white"></div>
+              )
+            )}
+          </button>
           {/* Filters Dropdown Popup */}
           {showFilters && (
             <div className="absolute top-12 left-0 w-56 bg-white border border-gray-200 rounded-xl shadow-xl z-20 py-2 dark:bg-gray-800 dark:border-gray-600 dark:shadow-none">
@@ -349,7 +368,8 @@ export default function Batches() {
             </div>
           )}
         </div>
-      {/* Batches List */}
+      </div>
+      {/* Batches List */ }
       <div className="space-y-3">
         {batchesWithStats.length === 0 ? (
           <div className="text-center py-16 text-gray-500 bg-white rounded-2xl border border-gray-100 shadow-sm dark:bg-gray-800 dark:border-gray-700 dark:text-gray-400 dark:shadow-none">
@@ -361,7 +381,7 @@ export default function Batches() {
             <Link
               key={batch.id}
               to={`/batch/${batch.id}`}
-              className="block bg-white p-4 rounded-xl border border-gray-100 shadow-sm active:scale-[0.99] transition-transform dark:bg-gray-800 dark:border-gray-700 dark:shadow-none"
+              className="block bg-white p-4 rounded-2xl border border-gray-100 shadow-sm active:scale-[0.99] transition-transform dark:bg-gray-800 dark:border-gray-700 dark:shadow-none"
             >
               <div className="flex justify-between items-start mb-3">
                 <div className="flex items-center gap-3">

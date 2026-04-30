@@ -229,7 +229,7 @@ export default function Settings() {
   const [showAdvancedSettings, setShowAdvancedSettings] = useState(false);
 
   return (
-    <div className="p-4 sm:p-6 pb-24 relative">
+    <div className="p-4 space-y-3 pb-24 min-h-full dark:bg-gray-900" dir="rtl">
       {/* Backup & Restore Modal */}
       {showAdvancedSettings && !showConfirmDialog && (
         <div className="fixed inset-0 z-40 flex items-center justify-center p-4 bg-gray-900/40 backdrop-blur-sm">
@@ -587,10 +587,15 @@ export default function Settings() {
         </div>
       )}
 
-      <div className="mb-6 flex justify-between items-center">
-        <h2 className="text-xl font-bold text-gray-800 flex items-center gap-2 dark:text-gray-100">
-          إعدادات النظام
-        </h2>
+      <div className="flex justify-between items-start gap-2 mb-4">
+        <div className="flex-1 min-w-0">
+          <h2 className="text-lg sm:text-xl md:text-2xl font-bold text-gray-900 flex items-center gap-1 sm:gap-2 dark:text-white">
+            <span className="truncate">إعدادات النظام</span>
+          </h2>
+          <p className="text-xs sm:text-sm text-gray-500 mt-1 dark:text-gray-400 truncate">
+            إدارة النسخ الاحتياطية وإعدادات التطبيق
+          </p>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 gap-4 items-start">

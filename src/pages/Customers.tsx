@@ -204,15 +204,17 @@ export default function Customers() {
   }, [viewCustomerHistory, orders]);
 
   return (
-    <div className="p-4 space-y-4">
-      <div className="flex justify-between items-center mb-2">
-        <h2 className="text-xl font-bold text-gray-900 flex items-center gap-2 dark:text-white">
-          <Users className="w-6 h-6 text-purple-600 dark:text-purple-400" />
-          سجل العملاء{" "}
-          <span className="text-sm font-normal text-gray-500 bg-gray-100 px-2 py-0.5 rounded-full dark:text-gray-400 dark:bg-gray-700">
-            ({customers.length})
-          </span>
-        </h2>
+    <div className="p-4 space-y-3 pb-24 min-h-full dark:bg-gray-900" dir="rtl">
+      <div className="flex justify-between items-start gap-2">
+        <div className="flex-1 min-w-0">
+          <h2 className="text-lg sm:text-xl md:text-2xl font-bold text-gray-900 flex items-center gap-1 sm:gap-2 dark:text-white">
+            <Users className="w-5 h-5 sm:w-6 sm:h-6 text-purple-600 dark:text-purple-400 flex-shrink-0" />
+            <span className="truncate">سجل العملاء</span>
+          </h2>
+          <p className="text-xs sm:text-sm text-gray-500 mt-1 dark:text-gray-400 truncate">
+            لديك {customers.length} عميل
+          </p>
+        </div>
         <button
           onClick={() => {
             setIsAdding(true);
@@ -220,13 +222,13 @@ export default function Customers() {
             setFormData({ name: "", phone: "", address: "", notes: "" });
             setShowExtraDetails(false);
           }}
-          className="bg-gray-900 text-white px-3 py-2 rounded-xl text-xs sm:text-sm font-bold flex items-center gap-1 active:scale-95 transition-transform shadow-md dark:shadow-none dark:bg-purple-600 dark:hover:bg-purple-700"
+          className="flex-shrink-0 whitespace-nowrap bg-gray-900 text-white px-3 py-2 rounded-xl text-xs sm:text-sm font-bold flex items-center gap-1 active:scale-95 transition-transform shadow-md dark:shadow-none dark:bg-purple-600 dark:hover:bg-purple-700"
         >
           <Plus className="w-4 h-4" /> إضافة عميل
         </button>
       </div>
 
-      <div className="flex gap-2 mb-4">
+      <div className="flex items-center gap-2 relative mb-4">
         <div className="relative flex-1">
           <Search className="w-4 h-4 absolute right-3 top-1/2 -translate-y-1/2 text-gray-400" />
           <input
@@ -261,10 +263,24 @@ export default function Customers() {
                 onClick={() => setShowSortMenu(false)}
               ></div>
               <div className="absolute top-12 left-0 w-56 bg-white border border-gray-200 rounded-xl shadow-xl z-20 py-2 dark:bg-gray-800 dark:border-gray-700 dark:shadow-none">
-                <div className="px-4 py-2 border-b border-gray-100 mb-1 dark:border-gray-700">
-                  <span className="text-xs font-bold text-gray-500 dark:text-gray-400">
+                <div className="px-4 py-2 border-b border-gray-100 mb-1 dark:border-gray-700 flex justify-between items-center">
+                  <span className="text-sm font-bold text-gray-500 dark:text-gray-400">
                     الترتيب حسب
                   </span>
+                  <button
+                    className="bg-gray-100 p-1.5 rounded-lg hover:bg-gray-200 transition-colors dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setSortDirection(sortDirection === "asc" ? "desc" : "asc");
+                    }}
+                    title="عكس الترتيب"
+                  >
+                    {sortDirection === "desc" ? (
+                      <ArrowDown className="w-4 h-4" />
+                    ) : (
+                      <ArrowUp className="w-4 h-4" />
+                    )}
+                  </button>
                 </div>
                 {(Object.entries(SORT_LABELS) as [SortOptionCustomers, string][]).map(
                   ([key, label]) => {
@@ -273,7 +289,7 @@ export default function Customers() {
                       <div
                         key={key}
                         className={clsx(
-                          "w-full flex items-center justify-between text-sm transition-colors cursor-pointer",
+                          "w-full flex items-center justify-between text-sm sm:text-base transition-colors cursor-pointer",
                           isActive
                             ? "bg-purple-50 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300 font-bold"
                             : "text-gray-700 hover:bg-gray-50 dark:text-gray-300 dark:hover:bg-gray-700/50",
@@ -287,24 +303,6 @@ export default function Customers() {
                           {isActive && <Check className="w-4 h-4 ml-auto block" />}
                           <span className={isActive ? "ml-4" : ""}>{label}</span>
                         </div>
-                        {isActive && (
-                          <button
-                            className="bg-transparent p-2 text-purple-700 hover:text-purple-800 transition-colors dark:text-purple-300 dark:hover:text-purple-200"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setSortDirection((prev) =>
-                                prev === "asc" ? "desc" : "asc",
-                              );
-                            }}
-                            title="عكس الترتيب"
-                          >
-                            {sortDirection === "desc" ? (
-                              <ArrowDown className="w-4 h-4 md:ml-1" />
-                            ) : (
-                              <ArrowUp className="w-4 h-4 md:ml-1" />
-                            )}
-                          </button>
-                        )}
                       </div>
                     );
                   },
