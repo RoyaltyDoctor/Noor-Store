@@ -14,14 +14,12 @@ export default function Batches() {
   const addBatch = useStore((state) => state.addBatch);
   const navigate = useNavigate();
 
-  const {
-    searchQuery,
-    setSearchQuery,
-    selectedStatus,
-    setSelectedStatus,
-    sortOption,
-    setSortOption,
-  } = useBatchesFilterStore();
+  const searchQuery = useBatchesFilterStore((state) => state.searchQuery);
+  const setSearchQuery = useBatchesFilterStore((state) => state.setSearchQuery);
+  const selectedStatus = useBatchesFilterStore((state) => state.selectedStatus);
+  const setSelectedStatus = useBatchesFilterStore((state) => state.setSelectedStatus);
+  const sortOption = useBatchesFilterStore((state) => state.sortOption);
+  const setSortOption = useBatchesFilterStore((state) => state.setSortOption);
 
   const [isMultiSelectMode, setIsMultiSelectMode] = useState(false);
   const [selectedStatusesMult, setSelectedStatusesMult] = useState<OrderStatus[]>(["PENDING", "ORDERED", "RECEIVED", "SHIPPING"]);
@@ -181,7 +179,7 @@ export default function Batches() {
 
           {/* Sort Dropdown Popup */}
           {showSortDropdown && (
-            <div className="absolute top-12 left-12 w-48 bg-white border border-gray-200 rounded-xl shadow-xl z-20 py-2 dark:bg-gray-800 dark:border-gray-600 dark:shadow-none">
+            <div className="absolute top-12 left-0 w-48 bg-white border border-gray-200 rounded-xl shadow-xl z-20 py-2 dark:bg-gray-800 dark:border-gray-600 dark:shadow-none">
               <div className="px-4 py-2 border-b border-gray-100 mb-1 dark:border-gray-700">
                 <span className="text-sm font-bold text-gray-500 dark:text-gray-400">
                   ترتيب السلات
@@ -216,8 +214,9 @@ export default function Batches() {
               ))}
             </div>
           )}
-
-          
+        </div>
+        
+        <div className="relative">
           <button
             onClick={() => { setShowFilters(!showFilters); setShowSortDropdown(false); }}
             className={clsx(
@@ -328,7 +327,7 @@ export default function Batches() {
                         setShowFilters(false);
                       }
                     }}
-                    className="w-full text-right px-4 py-2 hover:bg-gray-50 text-sm flex items-center gap-3 transition-colors outline-none dark:hover:bg-gray-700"
+                    className="w-full text-right px-4 py-2 hover:bg-gray-50 text-sm sm:text-base flex items-center gap-3 transition-colors outline-none dark:hover:bg-gray-700"
                   >
                     {isMultiSelectMode ? (
                       <div

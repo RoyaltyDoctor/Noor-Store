@@ -63,7 +63,7 @@ export const TextFitter: React.FC<{
       resizeObserver.disconnect();
       cancelAnimationFrame(animationFrameId);
     };
-  }, [children]);
+  }, []);
 
   let justifyContent = "flex-start";
   if (origin === "center") justifyContent = "center";

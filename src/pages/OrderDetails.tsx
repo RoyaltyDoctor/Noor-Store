@@ -29,8 +29,13 @@ import { TextFitter } from "../components/TextFitter";
 export default function OrderDetails() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { orders, customers, batches, updateOrder, updateOrderStatus, deleteOrder, addBatch } =
-    useStore();
+  const orders = useStore(state => state.orders);
+  const customers = useStore(state => state.customers);
+  const batches = useStore(state => state.batches);
+  const updateOrder = useStore(state => state.updateOrder);
+  const updateOrderStatus = useStore(state => state.updateOrderStatus);
+  const deleteOrder = useStore(state => state.deleteOrder);
+  const addBatch = useStore(state => state.addBatch);
 
   const order = orders.find((o) => o.id === id);
   const customer = customers.find((c) => c.id === order?.customerId);
@@ -58,8 +63,6 @@ export default function OrderDetails() {
   const [showSelectCustomerModal, setShowSelectCustomerModal] = useState(false);
   const [customerSearchQuery, setCustomerSearchQuery] = useState("");
 
-  if (!order) return <div className="p-4 text-center">الطلب غير موجود</div>;
-
   const statuses: OrderStatus[] = [
     "PENDING",
     "ORDERED",
@@ -67,16 +70,16 @@ export default function OrderDetails() {
     "SHIPPING",
     "DELIVERED",
   ];
-  const currentStatusIndex = statuses.indexOf(order.status);
+  const currentStatusIndex = order ? statuses.indexOf(order.status) : 0;
 
   // Calculate totals with fallbacks for older data where fees might be undefined
-  const itemsTotal = (order.items || []).reduce(
-    (sum, item) => sum + item.price * item.quantity,
+  const itemsTotal = (order?.items || []).reduce(
+    (sum, item) => sum + (item.price || 0) * (item.quantity || 1),
     0,
   );
-  const serviceFee = order.serviceFee || 0;
-  const shippingFee = order.shippingFee || 0;
-  const deposit = order.deposit || 0;
+  const serviceFee = order?.serviceFee || 0;
+  const shippingFee = order?.shippingFee || 0;
+  const deposit = order?.deposit || 0;
 
   const total = itemsTotal + serviceFee + shippingFee;
   const remaining = total - deposit;
@@ -170,7 +173,7 @@ export default function OrderDetails() {
   };
 
   const handleCopyOrderNumber = () => {
-    if (order.orderNumber) {
+    if (order?.orderNumber) {
       navigator.clipboard.writeText(order.orderNumber);
       setCopiedOrderId(order.id);
       setTimeout(() => setCopiedOrderId(null), 1500);
@@ -188,6 +191,8 @@ export default function OrderDetails() {
     setCopiedUrlId(id);
     setTimeout(() => setCopiedUrlId(null), 1500);
   };
+
+  if (!order) return <div className="p-4 text-center">الطلب غير موجود</div>;
 
   return (
     <div className="bg-gray-50 min-h-full pb-8 relative dark:bg-gray-900 dark:bg-gray-800">

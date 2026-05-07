@@ -38,27 +38,29 @@ import {
 import { TextFitter } from "../components/TextFitter";
 
 export default function Home() {
-  const { orders, customers, batches, addOrder, addCustomer } = useStore();
-  const {
-    searchQuery,
-    setSearchQuery,
-    isMultiSelectMode,
-    setIsMultiSelectMode,
-    selectedStatus,
-    setSelectedStatus,
-    selectedStatusesMult,
-    setSelectedStatusesMult,
-    dateFilter,
-    setDateFilter,
-    customStartDate,
-    setCustomStartDate,
-    customEndDate,
-    setCustomEndDate,
-    scrollPosition,
-    setScrollPosition,
-    sortOption,
-    setSortOption,
-  } = useFilterStore();
+  const orders = useStore(state => state.orders);
+  const customers = useStore(state => state.customers);
+  const batches = useStore(state => state.batches);
+  const addOrder = useStore(state => state.addOrder);
+  const addCustomer = useStore(state => state.addCustomer);
+  const searchQuery = useFilterStore((state) => state.searchQuery);
+  const setSearchQuery = useFilterStore((state) => state.setSearchQuery);
+  const isMultiSelectMode = useFilterStore((state) => state.isMultiSelectMode);
+  const setIsMultiSelectMode = useFilterStore((state) => state.setIsMultiSelectMode);
+  const selectedStatus = useFilterStore((state) => state.selectedStatus);
+  const setSelectedStatus = useFilterStore((state) => state.setSelectedStatus);
+  const selectedStatusesMult = useFilterStore((state) => state.selectedStatusesMult);
+  const setSelectedStatusesMult = useFilterStore((state) => state.setSelectedStatusesMult);
+  const dateFilter = useFilterStore((state) => state.dateFilter);
+  const setDateFilter = useFilterStore((state) => state.setDateFilter);
+  const customStartDate = useFilterStore((state) => state.customStartDate);
+  const setCustomStartDate = useFilterStore((state) => state.setCustomStartDate);
+  const customEndDate = useFilterStore((state) => state.customEndDate);
+  const setCustomEndDate = useFilterStore((state) => state.setCustomEndDate);
+  const scrollPosition = useFilterStore((state) => state.scrollPosition);
+  const setScrollPosition = useFilterStore((state) => state.setScrollPosition);
+  const sortOption = useFilterStore((state) => state.sortOption);
+  const setSortOption = useFilterStore((state) => state.setSortOption);
 
   const navigate = useNavigate();
 
@@ -402,7 +404,7 @@ export default function Home() {
                     setShowDateDropdown(false);
                   }}
                   className={clsx(
-                    "w-full text-right px-3 py-2 text-xs sm:text-sm flex items-center gap-2 transition-colors outline-none",
+                    "w-full text-right px-3 py-2 text-sm sm:text-base flex items-center gap-2 transition-colors outline-none",
                     dateFilter === filter.id
                       ? "bg-purple-50 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300 font-bold"
                       : "text-gray-700 hover:bg-gray-50 dark:text-gray-300 dark:hover:bg-gray-700/50"
@@ -527,7 +529,7 @@ export default function Home() {
                         setShowFilterDropdown(false);
                       }
                     }}
-                    className="w-full text-right px-4 py-2 hover:bg-gray-50 dark:hover:bg-gray-700/50 text-sm flex items-center gap-3 transition-colors outline-none"
+                    className="w-full text-right px-4 py-2 hover:bg-gray-50 dark:hover:bg-gray-700/50 text-sm sm:text-base flex items-center gap-3 transition-colors outline-none"
                   >
                     {isMultiSelectMode ? (
                       isSelected ? (

@@ -4,7 +4,7 @@ import { get, set, del } from "idb-keyval";
 import { v4 as uuidv4 } from "uuid";
 import { Customer, Order, OrderStatus, Batch } from "./types";
 
-import { setDoc, doc, deleteDoc } from "firebase/firestore";
+import { setDoc, doc, deleteDoc, deleteField } from "firebase/firestore";
 import { db, auth, handleFirestoreError, OperationType } from "./firebase";
 
 const isAutoSyncEnabled = () => localStorage.getItem("autoSync") === "true";
@@ -21,9 +21,15 @@ const pushToFb = (collectionName: string, id: string, data: any) => {
   }
   const user = auth.currentUser;
   if (user) {
+    const cleanData = { ...data, userId: user.uid };
+    for (const key in cleanData) {
+      if (cleanData[key] === undefined) {
+        cleanData[key] = deleteField();
+      }
+    }
     setDoc(
       doc(db, collectionName, id),
-      { ...data, userId: user.uid },
+      cleanData,
       { merge: true },
     ).catch((err) => handleFirestoreError(err, OperationType.WRITE, collectionName));
   }

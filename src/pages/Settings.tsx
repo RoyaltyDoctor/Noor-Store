@@ -19,7 +19,10 @@ import { format } from "date-fns";
 import { ar } from "date-fns/locale";
 
 export default function Settings() {
-  const store = useStore();
+  const customers = useStore(state => state.customers);
+  const orders = useStore(state => state.orders);
+  const deletedOrders = useStore(state => state.deletedOrders);
+  const mergeBackup = useStore(state => state.mergeBackup);
   const { theme, setTheme } = useThemeStore();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -49,8 +52,8 @@ export default function Settings() {
   let ordersNewCount = 0;
 
   if (pendingBackup) {
-    const currentCustIds = new Set((store.customers || []).map((c) => c.id));
-    const currentOrderIds = new Set((store.orders || []).map((o) => o.id));
+    const currentCustIds = new Set((customers || []).map((c) => c.id));
+    const currentOrderIds = new Set((orders || []).map((o) => o.id));
 
     if (importOptions.customers) {
       const bCusts = Array.isArray(pendingBackup.customers)
@@ -79,7 +82,6 @@ export default function Settings() {
       return;
     }
 
-    const { customers, orders, deletedOrders } = store;
     const backupData = {
       version: 1,
       exportedAt: Date.now(),
@@ -186,7 +188,7 @@ export default function Settings() {
         !importOptions.customers &&
         ordersToMerge.length > 0
       ) {
-        const currentCustomerIds = new Set(store.customers.map((c) => c.id));
+        const currentCustomerIds = new Set(customers.map((c) => c.id));
         const missingCustomerIds = new Set<string>();
 
         ordersToMerge.forEach((o: any) => {
@@ -204,7 +206,7 @@ export default function Settings() {
         }
       }
 
-      store.mergeBackup({
+      mergeBackup({
         customers: customersToMerge,
         orders: ordersToMerge,
         deletedOrders: deletedOrdersToMerge,
@@ -288,7 +290,7 @@ export default function Settings() {
                         <span>
                           بيانات العملاء{" "}
                           <span className="text-xs text-gray-400">
-                            ({store.customers.length})
+                            ({customers.length})
                           </span>
                         </span>
                       </label>
@@ -309,7 +311,7 @@ export default function Settings() {
                         <span>
                           تضمين سجل الطلبيات{" "}
                           <span className="text-xs text-gray-400">
-                            ({store.orders.length})
+                            ({orders.length})
                           </span>
                         </span>
                       </label>
@@ -495,7 +497,7 @@ export default function Settings() {
                   <div className="flex justify-between items-center text-gray-600 dark:text-gray-300">
                     <span>العملاء الحاليين في التطبيق:</span>
                     <span className="font-mono">
-                      {store.customers?.length || 0}
+                      {customers?.length || 0}
                     </span>
                   </div>
                   {importOptions.customers && (
@@ -522,7 +524,7 @@ export default function Settings() {
                   <div className="flex justify-between items-center text-gray-600 dark:text-gray-300">
                     <span>الطلبيات الحالية في التطبيق:</span>
                     <span className="font-mono">
-                      {store.orders?.length || 0}
+                      {orders?.length || 0}
                     </span>
                   </div>
                   {importOptions.orders && (

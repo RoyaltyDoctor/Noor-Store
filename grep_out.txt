@@ -1,0 +1,677 @@
+src/pages/Customers.tsx-59-      const targetCustomer = customers.find((c) => c.id === highlightId);
+src/pages/Customers.tsx-60-      if (targetCustomer) {
+src/pages/Customers.tsx:61:        setViewCustomerHistory(targetCustomer);
+src/pages/Customers.tsx-62-      }
+src/pages/Customers.tsx-63-
+--
+src/pages/Customers.tsx-159-      addCustomer(formData);
+src/pages/Customers.tsx-160-    }
+src/pages/Customers.tsx:161:    setFormData({ name: "", phone: "", address: "", notes: "" });
+src/pages/Customers.tsx:162:    setIsAdding(false);
+src/pages/Customers.tsx:163:    setEditingId(null);
+src/pages/Customers.tsx:164:    setShowExtraDetails(false);
+src/pages/Customers.tsx-165-  };
+src/pages/Customers.tsx-166-
+src/pages/Customers.tsx-167-  const handleEdit = (e: React.MouseEvent, c: Customer) => {
+src/pages/Customers.tsx-168-    e.stopPropagation();
+src/pages/Customers.tsx:169:    setFormData({
+src/pages/Customers.tsx-170-      name: c.name,
+src/pages/Customers.tsx-171-      phone: c.phone || "",
+--
+src/pages/Customers.tsx-173-      notes: c.notes || "",
+src/pages/Customers.tsx-174-    });
+src/pages/Customers.tsx:175:    setEditingId(c.id);
+src/pages/Customers.tsx:176:    setIsAdding(true);
+src/pages/Customers.tsx:177:    setShowExtraDetails(false);
+src/pages/Customers.tsx-178-  };
+src/pages/Customers.tsx-179-
+--
+src/pages/Customers.tsx-182-  const handleDeleteClick = (e: React.MouseEvent, id: string) => {
+src/pages/Customers.tsx-183-    e.stopPropagation();
+src/pages/Customers.tsx:184:    setDeleteConfirmId(id);
+src/pages/Customers.tsx-185-  };
+src/pages/Customers.tsx-186-
+--
+src/pages/Customers.tsx-188-    if (deleteConfirmId) {
+src/pages/Customers.tsx-189-      deleteCustomer(deleteConfirmId);
+src/pages/Customers.tsx:190:      setDeleteConfirmId(null);
+src/pages/Customers.tsx-191-    }
+src/pages/Customers.tsx-192-  };
+--
+src/pages/Customers.tsx-194-  const openHistory = (e: React.MouseEvent, c: Customer) => {
+src/pages/Customers.tsx-195-    e.stopPropagation();
+src/pages/Customers.tsx:196:    setViewCustomerHistory(c);
+src/pages/Customers.tsx-197-  };
+src/pages/Customers.tsx-198-
+--
+src/pages/Customers.tsx-218-        <button
+src/pages/Customers.tsx-219-          onClick={() => {
+src/pages/Customers.tsx:220:            setIsAdding(true);
+src/pages/Customers.tsx:221:            setEditingId(null);
+src/pages/Customers.tsx:222:            setFormData({ name: "", phone: "", address: "", notes: "" });
+src/pages/Customers.tsx:223:            setShowExtraDetails(false);
+src/pages/Customers.tsx-224-          }}
+src/pages/Customers.tsx-225-          className="flex-shrink-0 whitespace-nowrap bg-gray-900 text-white px-3 py-2 rounded-xl text-xs sm:text-sm font-bold flex items-center gap-1 active:scale-95 transition-transform shadow-md dark:shadow-none dark:bg-purple-600 dark:hover:bg-purple-700"
+--
+src/pages/Customers.tsx-272-                    onClick={(e) => {
+src/pages/Customers.tsx-273-                      e.stopPropagation();
+src/pages/Customers.tsx:274:                      setSortDirection(sortDirection === "asc" ? "desc" : "asc");
+src/pages/Customers.tsx-275-                    }}
+src/pages/Customers.tsx-276-                    title="عكس الترتيب"
+--
+src/pages/Customers.tsx-296-                        )}
+src/pages/Customers.tsx-297-                        onClick={() => {
+src/pages/Customers.tsx:298:                          setSortBy(key as SortOptionCustomers);
+src/pages/Customers.tsx:299:                          setShowSortMenu(false);
+src/pages/Customers.tsx-300-                        }}
+src/pages/Customers.tsx-301-                      >
+--
+src/pages/Customers.tsx-342-              value={formData.name}
+src/pages/Customers.tsx-343-              onChange={(e) =>
+src/pages/Customers.tsx:344:                setFormData({ ...formData, name: e.target.value })
+src/pages/Customers.tsx-345-              }
+src/pages/Customers.tsx-346-              className="flex-[2] min-w-0 bg-gray-50 border border-gray-200 rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-purple-500 outline-none dark:bg-gray-900 dark:border-gray-600"
+--
+src/pages/Customers.tsx-351-              value={formData.phone}
+src/pages/Customers.tsx-352-              onChange={(e) =>
+src/pages/Customers.tsx:353:                setFormData({ ...formData, phone: e.target.value })
+src/pages/Customers.tsx-354-              }
+src/pages/Customers.tsx-355-              className="flex-1 min-w-0 bg-gray-50 border border-gray-200 rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-purple-500 outline-none dir-rtl dark:bg-gray-900 dark:border-gray-600"
+--
+src/pages/Customers.tsx-364-                value={formData.address}
+src/pages/Customers.tsx-365-                onChange={(e) =>
+src/pages/Customers.tsx:366:                  setFormData({ ...formData, address: e.target.value })
+src/pages/Customers.tsx-367-                }
+src/pages/Customers.tsx-368-                className="w-full bg-gray-50 border border-gray-200 rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-purple-500 outline-none dark:bg-gray-900 dark:border-gray-600"
+--
+src/pages/Customers.tsx-373-                value={formData.notes || ""}
+src/pages/Customers.tsx-374-                onChange={(e) =>
+src/pages/Customers.tsx:375:                  setFormData({ ...formData, notes: e.target.value })
+src/pages/Customers.tsx-376-                }
+src/pages/Customers.tsx-377-                className="w-full bg-yellow-50 border border-yellow-200 rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-yellow-500 outline-none placeholder:text-yellow-700/50 dark:bg-yellow-900/30"
+--
+src/pages/Customers.tsx-390-            <button
+src/pages/Customers.tsx-391-              onClick={() => {
+src/pages/Customers.tsx:392:                setIsAdding(false);
+src/pages/Customers.tsx:393:                setShowExtraDetails(false);
+src/pages/Customers.tsx-394-              }}
+src/pages/Customers.tsx-395-              className="flex-1 bg-gray-100 text-gray-700 rounded-xl py-2 text-sm font-bold dark:bg-gray-700 dark:text-gray-200"
+--
+src/pages/Customers.tsx-440-                        value={formData.name}
+src/pages/Customers.tsx-441-                        onChange={(e) =>
+src/pages/Customers.tsx:442:                          setFormData({ ...formData, name: e.target.value })
+src/pages/Customers.tsx-443-                        }
+src/pages/Customers.tsx-444-                        className="flex-[2] min-w-0 bg-white border border-gray-200 rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-purple-500 outline-none dark:bg-gray-800 dark:border-gray-600"
+--
+src/pages/Customers.tsx-449-                        value={formData.phone}
+src/pages/Customers.tsx-450-                        onChange={(e) =>
+src/pages/Customers.tsx:451:                          setFormData({ ...formData, phone: e.target.value })
+src/pages/Customers.tsx-452-                        }
+src/pages/Customers.tsx-453-                        className="flex-1 min-w-0 bg-white border border-gray-200 rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-purple-500 outline-none dir-rtl dark:bg-gray-800 dark:border-gray-600"
+--
+src/pages/Customers.tsx-462-                          value={formData.address}
+src/pages/Customers.tsx-463-                          onChange={(e) =>
+src/pages/Customers.tsx:464:                            setFormData({
+src/pages/Customers.tsx-465-                              ...formData,
+src/pages/Customers.tsx-466-                              address: e.target.value,
+--
+src/pages/Customers.tsx-474-                          value={formData.notes || ""}
+src/pages/Customers.tsx-475-                          onChange={(e) =>
+src/pages/Customers.tsx:476:                            setFormData({ ...formData, notes: e.target.value })
+src/pages/Customers.tsx-477-                          }
+src/pages/Customers.tsx-478-                          className="w-full bg-yellow-50 border border-yellow-200 rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-yellow-500 outline-none placeholder:text-yellow-700/50 dark:bg-yellow-900/30"
+--
+src/pages/Customers.tsx-491-                      <button
+src/pages/Customers.tsx-492-                        onClick={() => {
+src/pages/Customers.tsx:493:                          setEditingId(null);
+src/pages/Customers.tsx:494:                          setShowExtraDetails(false);
+src/pages/Customers.tsx:495:                          setIsAdding(false);
+src/pages/Customers.tsx-496-                        }}
+src/pages/Customers.tsx-497-                        className="flex-1 bg-white border border-gray-200 text-gray-700 rounded-xl py-2 text-sm font-bold dark:bg-gray-800 dark:border-gray-600 dark:text-gray-200"
+--
+src/pages/Settings.tsx-110-    if (!file) return;
+src/pages/Settings.tsx-111-
+src/pages/Settings.tsx:112:    setImportStatus("idle");
+src/pages/Settings.tsx:113:    setErrorMessage("");
+src/pages/Settings.tsx-114-
+src/pages/Settings.tsx-115-    const reader = new FileReader();
+--
+src/pages/Settings.tsx-126-        }
+src/pages/Settings.tsx-127-
+src/pages/Settings.tsx:128:        setPendingBackup(backupData);
+src/pages/Settings.tsx:129:        setImportOptions({
+src/pages/Settings.tsx-130-          customers: (backupData.customers?.length || 0) > 0,
+src/pages/Settings.tsx-131-          orders: (backupData.orders?.length || 0) > 0,
+src/pages/Settings.tsx-132-        });
+src/pages/Settings.tsx:133:        setShowConfirmDialog(true);
+src/pages/Settings.tsx-134-      } catch (err) {
+src/pages/Settings.tsx-135-        console.error("Import error", err);
+src/pages/Settings.tsx:136:        setImportStatus("error");
+src/pages/Settings.tsx:137:        setErrorMessage(
+src/pages/Settings.tsx-138-          err instanceof Error
+src/pages/Settings.tsx-139-            ? err.message
+src/pages/Settings.tsx-140-            : "حدث خطأ غير متوقع عند قراءة الملف",
+src/pages/Settings.tsx-141-        );
+src/pages/Settings.tsx:142:        setTimeout(() => setImportStatus("idle"), 4000);
+src/pages/Settings.tsx-143-      }
+src/pages/Settings.tsx-144-
+--
+src/pages/Settings.tsx-149-
+src/pages/Settings.tsx-150-    reader.onerror = () => {
+src/pages/Settings.tsx:151:      setImportStatus("error");
+src/pages/Settings.tsx:152:      setErrorMessage("تعذر قراءة الملف");
+src/pages/Settings.tsx:153:      setTimeout(() => setImportStatus("idle"), 4000);
+src/pages/Settings.tsx-154-      if (fileInputRef.current) fileInputRef.current.value = "";
+src/pages/Settings.tsx-155-    };
+--
+src/pages/Settings.tsx-165-    }
+src/pages/Settings.tsx-166-
+src/pages/Settings.tsx:167:    setShowConfirmDialog(false);
+src/pages/Settings.tsx:168:    setImportStatus("importing");
+src/pages/Settings.tsx-169-
+src/pages/Settings.tsx-170-    try {
+--
+src/pages/Settings.tsx-211-      });
+src/pages/Settings.tsx-212-
+src/pages/Settings.tsx:213:      setImportStatus("success");
+src/pages/Settings.tsx:214:      setPendingBackup(null);
+src/pages/Settings.tsx:215:      setTimeout(() => setImportStatus("idle"), 4000);
+src/pages/Settings.tsx-216-    } catch (err) {
+src/pages/Settings.tsx:217:      setImportStatus("error");
+src/pages/Settings.tsx:218:      setErrorMessage("حدث خطأ أثناء محاولة دمج البيانات");
+src/pages/Settings.tsx:219:      setTimeout(() => setImportStatus("idle"), 4000);
+src/pages/Settings.tsx-220-    }
+src/pages/Settings.tsx-221-  };
+src/pages/Settings.tsx-222-
+src/pages/Settings.tsx-223-  const cancelImport = () => {
+src/pages/Settings.tsx:224:    setShowConfirmDialog(false);
+src/pages/Settings.tsx:225:    setPendingBackup(null);
+src/pages/Settings.tsx:226:    setImportStatus("idle");
+src/pages/Settings.tsx-227-  };
+src/pages/Settings.tsx-228-
+--
+src/pages/Settings.tsx-301-                          onChange={(e) => {
+src/pages/Settings.tsx-302-                            const checked = e.target.checked;
+src/pages/Settings.tsx:303:                            setExportOptions({
+src/pages/Settings.tsx-304-                              customers: true,
+src/pages/Settings.tsx-305-                              orders: checked,
+--
+src/pages/Settings.tsx-442-                        checked={importOptions.customers}
+src/pages/Settings.tsx-443-                        onChange={(e) =>
+src/pages/Settings.tsx:444:                          setImportOptions((p) => ({
+src/pages/Settings.tsx-445-                            ...p,
+src/pages/Settings.tsx-446-                            customers: e.target.checked,
+--
+src/pages/Settings.tsx-467-                        checked={importOptions.orders}
+src/pages/Settings.tsx-468-                        onChange={(e) =>
+src/pages/Settings.tsx:469:                          setImportOptions((p) => ({
+src/pages/Settings.tsx-470-                            ...p,
+src/pages/Settings.tsx-471-                            orders: e.target.checked,
+--
+src/pages/Batches.tsx-36-        !dropdownsContainerRef.current.contains(event.target as Node)
+src/pages/Batches.tsx-37-      ) {
+src/pages/Batches.tsx:38:        setShowFilters(false);
+src/pages/Batches.tsx:39:        setShowSortDropdown(false);
+src/pages/Batches.tsx-40-      }
+src/pages/Batches.tsx-41-    };
+--
+src/pages/Batches.tsx-52-
+src/pages/Batches.tsx-53-  const toggleMultiselectStatus = (status: OrderStatus) => {
+src/pages/Batches.tsx:54:    setSelectedStatusesMult(
+src/pages/Batches.tsx-55-      selectedStatusesMult.includes(status)
+src/pages/Batches.tsx-56-        ? selectedStatusesMult.filter((s) => s !== status)
+--
+src/pages/Batches.tsx-199-                  key={option.id}
+src/pages/Batches.tsx-200-                  onClick={() => {
+src/pages/Batches.tsx:201:                    setSortOption(option.id as SortOptionBatches);
+src/pages/Batches.tsx:202:                    setShowSortDropdown(false);
+src/pages/Batches.tsx-203-                  }}
+src/pages/Batches.tsx-204-                  className={clsx(
+--
+src/pages/Batches.tsx-269-                  onClick={() => {
+src/pages/Batches.tsx-270-                    if (isMultiSelectMode)
+src/pages/Batches.tsx:271:                      setSelectedStatusesMult([
+src/pages/Batches.tsx-272-                        "PENDING",
+src/pages/Batches.tsx-273-                        "ORDERED",
+--
+src/pages/Batches.tsx-277-                      ]);
+src/pages/Batches.tsx-278-                    else setSelectedStatus("ALL");
+src/pages/Batches.tsx:279:                    setShowFilters(false);
+src/pages/Batches.tsx-280-                  }}
+src/pages/Batches.tsx-281-                  className={`px-2 py-1 transition-colors rounded hover:bg-gray-50 dark:hover:bg-gray-700 ${
+--
+src/pages/Batches.tsx-290-                  onClick={() => {
+src/pages/Batches.tsx-291-                    if (isMultiSelectMode)
+src/pages/Batches.tsx:292:                      setSelectedStatusesMult([
+src/pages/Batches.tsx-293-                        "PENDING",
+src/pages/Batches.tsx-294-                        "ORDERED",
+--
+src/pages/Batches.tsx-297-                      ]);
+src/pages/Batches.tsx-298-                    else setSelectedStatus("ACTIVE");
+src/pages/Batches.tsx:299:                    setShowFilters(false);
+src/pages/Batches.tsx-300-                  }}
+src/pages/Batches.tsx-301-                  className={`px-2 py-1 transition-colors rounded hover:bg-gray-50 dark:hover:bg-gray-700 ${
+--
+src/pages/Batches.tsx-326-                        toggleMultiselectStatus(status);
+src/pages/Batches.tsx-327-                      } else {
+src/pages/Batches.tsx:328:                        setSelectedStatus(status);
+src/pages/Batches.tsx:329:                        setShowFilters(false);
+src/pages/Batches.tsx-330-                      }
+src/pages/Batches.tsx-331-                    }}
+--
+src/pages/BatchDetails.tsx-63-    updateOrder(oid, { batchId: id });
+src/pages/BatchDetails.tsx-64-    navigate(`/order/${oid}`);
+src/pages/BatchDetails.tsx:65:    setShowNewOrderModal(false);
+src/pages/BatchDetails.tsx-66-  };
+src/pages/BatchDetails.tsx-67-
+--
+src/pages/BatchDetails.tsx-77-    updateOrder(oid, { batchId: id });
+src/pages/BatchDetails.tsx-78-    navigate(`/order/${oid}`);
+src/pages/BatchDetails.tsx:79:    setShowNewOrderModal(false);
+src/pages/BatchDetails.tsx-80-  };
+src/pages/BatchDetails.tsx-81-
+--
+src/pages/BatchDetails.tsx-105-      bankFees: Number(formData.bankFees) || 0
+src/pages/BatchDetails.tsx-106-    });
+src/pages/BatchDetails.tsx:107:    setIsEditingDocs(false);
+src/pages/BatchDetails.tsx-108-  };
+src/pages/BatchDetails.tsx-109-
+--
+src/pages/BatchDetails.tsx-456-            <button
+src/pages/BatchDetails.tsx-457-              onClick={() => {
+src/pages/BatchDetails.tsx:458:                setShowLinkModal(false);
+src/pages/BatchDetails.tsx:459:                setShowNewOrderModal(true);
+src/pages/BatchDetails.tsx:460:                setIsAddingNewCustomer(false);
+src/pages/BatchDetails.tsx:461:                setCustomerSearch("");
+src/pages/BatchDetails.tsx-462-              }}
+src/pages/BatchDetails.tsx-463-              className="w-full mb-3 bg-purple-50 hover:bg-purple-100 text-purple-700 rounded-xl px-4 py-3 font-bold flex items-center justify-center gap-2 transition-colors dark:bg-purple-900/30 dark:text-purple-400 dark:hover:bg-purple-900/50"
+--
+src/pages/BatchDetails.tsx-505-                        onClick={() => {
+src/pages/BatchDetails.tsx-506-                          updateOrder(order.id, { batchId: id });
+src/pages/BatchDetails.tsx:507:                          setShowLinkModal(false);
+src/pages/BatchDetails.tsx-508-                        }}
+src/pages/BatchDetails.tsx-509-                        className="bg-purple-50 text-purple-600 text-xs font-bold px-3 py-1.5 rounded-lg active:scale-95 dark:bg-purple-900/30 dark:text-purple-400"
+--
+src/pages/BatchDetails.tsx-532-              <button
+src/pages/BatchDetails.tsx-533-                onClick={() => {
+src/pages/BatchDetails.tsx:534:                  setShowNewOrderModal(false);
+src/pages/BatchDetails.tsx:535:                  setIsAddingNewCustomer(false);
+src/pages/BatchDetails.tsx-536-                }}
+src/pages/BatchDetails.tsx-537-                className="p-1.5 bg-gray-100 hover:bg-gray-200 rounded-full text-gray-600 transition-colors dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600"
+--
+src/pages/BatchDetails.tsx-597-                    value={newCustomerForm.name}
+src/pages/BatchDetails.tsx-598-                    onChange={(e) =>
+src/pages/BatchDetails.tsx:599:                      setNewCustomerForm({
+src/pages/BatchDetails.tsx-600-                        ...newCustomerForm,
+src/pages/BatchDetails.tsx-601-                        name: e.target.value,
+--
+src/pages/BatchDetails.tsx-609-                    value={newCustomerForm.phone}
+src/pages/BatchDetails.tsx-610-                    onChange={(e) =>
+src/pages/BatchDetails.tsx:611:                      setNewCustomerForm({
+src/pages/BatchDetails.tsx-612-                        ...newCustomerForm,
+src/pages/BatchDetails.tsx-613-                        phone: e.target.value,
+--
+src/pages/BatchDetails.tsx-637-                        value={newCustomerForm.address}
+src/pages/BatchDetails.tsx-638-                        onChange={(e) =>
+src/pages/BatchDetails.tsx:639:                          setNewCustomerForm({
+src/pages/BatchDetails.tsx-640-                            ...newCustomerForm,
+src/pages/BatchDetails.tsx-641-                            address: e.target.value,
+--
+src/pages/BatchDetails.tsx-649-                        value={newCustomerForm.notes}
+src/pages/BatchDetails.tsx-650-                        onChange={(e) =>
+src/pages/BatchDetails.tsx:651:                          setNewCustomerForm({
+src/pages/BatchDetails.tsx-652-                            ...newCustomerForm,
+src/pages/BatchDetails.tsx-653-                            notes: e.target.value,
+--
+src/pages/Home.tsx-82-      if (timeoutId) clearTimeout(timeoutId);
+src/pages/Home.tsx-83-      timeoutId = setTimeout(() => {
+src/pages/Home.tsx:84:        setScrollPosition(container.scrollTop);
+src/pages/Home.tsx-85-      }, 100);
+src/pages/Home.tsx-86-    };
+--
+src/pages/Home.tsx-111-        !dropdownsContainerRef.current.contains(event.target as Node)
+src/pages/Home.tsx-112-      ) {
+src/pages/Home.tsx:113:        setShowFilterDropdown(false);
+src/pages/Home.tsx:114:        setShowDateDropdown(false);
+src/pages/Home.tsx:115:        setShowSortDropdown(false);
+src/pages/Home.tsx-116-      }
+src/pages/Home.tsx-117-    };
+--
+src/pages/Home.tsx-245-    const oid = addOrder(cid);
+src/pages/Home.tsx-246-    navigate(`/order/${oid}`);
+src/pages/Home.tsx:247:    setShowNewOrderModal(false);
+src/pages/Home.tsx-248-  };
+src/pages/Home.tsx-249-
+--
+src/pages/Home.tsx-258-    const oid = addOrder(cid);
+src/pages/Home.tsx-259-    navigate(`/order/${oid}`);
+src/pages/Home.tsx:260:    setShowNewOrderModal(false);
+src/pages/Home.tsx-261-  };
+src/pages/Home.tsx-262-
+src/pages/Home.tsx-263-  const toggleMultiselectStatus = (status: OrderStatus) => {
+src/pages/Home.tsx:264:    setSelectedStatusesMult(
+src/pages/Home.tsx-265-      selectedStatusesMult.includes(status)
+src/pages/Home.tsx-266-        ? selectedStatusesMult.filter((s) => s !== status)
+--
+src/pages/Home.tsx-273-    e.stopPropagation();
+src/pages/Home.tsx-274-    navigator.clipboard.writeText(text);
+src/pages/Home.tsx:275:    setCopiedOrderId(id);
+src/pages/Home.tsx:276:    setTimeout(() => setCopiedOrderId(null), 1500);
+src/pages/Home.tsx-277-  };
+src/pages/Home.tsx-278-
+--
+src/pages/Home.tsx-290-        <button
+src/pages/Home.tsx-291-          onClick={() => {
+src/pages/Home.tsx:292:            setShowNewOrderModal(true);
+src/pages/Home.tsx:293:            setIsAddingNewCustomer(false);
+src/pages/Home.tsx:294:            setCustomerSearch("");
+src/pages/Home.tsx-295-          }}
+src/pages/Home.tsx-296-          className="flex-shrink-0 whitespace-nowrap bg-gray-900 text-white px-3 py-2 rounded-xl text-xs sm:text-sm font-bold flex items-center gap-1 active:scale-95 transition-transform shadow-md dark:shadow-none dark:bg-purple-600 dark:hover:bg-purple-700"
+--
+src/pages/Home.tsx-347-                  key={option.id}
+src/pages/Home.tsx-348-                  onClick={() => {
+src/pages/Home.tsx:349:                    setSortOption(option.id as any);
+src/pages/Home.tsx:350:                    setShowSortDropdown(false);
+src/pages/Home.tsx-351-                  }}
+src/pages/Home.tsx-352-                  className={clsx(
+--
+src/pages/Home.tsx-399-                  key={filter.id}
+src/pages/Home.tsx-400-                  onClick={() => {
+src/pages/Home.tsx:401:                    setDateFilter(filter.id as DateFilterType);
+src/pages/Home.tsx:402:                    setShowDateDropdown(false);
+src/pages/Home.tsx-403-                  }}
+src/pages/Home.tsx-404-                  className={clsx(
+--
+src/pages/Home.tsx-458-                  onClick={() => {
+src/pages/Home.tsx-459-                    if (isMultiSelectMode)
+src/pages/Home.tsx:460:                      setSelectedStatusesMult([
+src/pages/Home.tsx-461-                        "PENDING",
+src/pages/Home.tsx-462-                        "ORDERED",
+--
+src/pages/Home.tsx-466-                      ]);
+src/pages/Home.tsx-467-                    else {
+src/pages/Home.tsx:468:                      setSelectedStatus("ALL");
+src/pages/Home.tsx:469:                      setShowFilterDropdown(false);
+src/pages/Home.tsx-470-                    }
+src/pages/Home.tsx-471-                  }}
+--
+src/pages/Home.tsx-486-                  onClick={() => {
+src/pages/Home.tsx-487-                    if (isMultiSelectMode)
+src/pages/Home.tsx:488:                      setSelectedStatusesMult([
+src/pages/Home.tsx-489-                        "PENDING",
+src/pages/Home.tsx-490-                        "ORDERED",
+--
+src/pages/Home.tsx-493-                      ]);
+src/pages/Home.tsx-494-                    else {
+src/pages/Home.tsx:495:                      setSelectedStatus("ACTIVE");
+src/pages/Home.tsx:496:                      setShowFilterDropdown(false);
+src/pages/Home.tsx-497-                    }
+src/pages/Home.tsx-498-                  }}
+--
+src/pages/Home.tsx-524-                        toggleMultiselectStatus(key as OrderStatus);
+src/pages/Home.tsx-525-                      else {
+src/pages/Home.tsx:526:                        setSelectedStatus(key as OrderStatus);
+src/pages/Home.tsx:527:                        setShowFilterDropdown(false);
+src/pages/Home.tsx-528-                      }
+src/pages/Home.tsx-529-                    }}
+--
+src/pages/Home.tsx-684-                      e.preventDefault();
+src/pages/Home.tsx-685-                      e.stopPropagation();
+src/pages/Home.tsx:686:                      setItemsModalOrder(order);
+src/pages/Home.tsx-687-                    }}
+src/pages/Home.tsx-688-                  >
+--
+src/pages/Home.tsx-848-              onClick={() => {
+src/pages/Home.tsx-849-                handleNavigateToOrder(itemsModalOrder.id);
+src/pages/Home.tsx:850:                setItemsModalOrder(null);
+src/pages/Home.tsx-851-              }}
+src/pages/Home.tsx-852-              className="mt-4 w-full bg-purple-100 text-purple-700 py-3 rounded-xl font-bold text-sm active:bg-purple-200 transition-colors dark:text-purple-300 dark:bg-purple-900/40"
+--
+src/pages/Home.tsx-869-              <button
+src/pages/Home.tsx-870-                onClick={() => {
+src/pages/Home.tsx:871:                  setShowNewOrderModal(false);
+src/pages/Home.tsx:872:                  setIsAddingNewCustomer(false);
+src/pages/Home.tsx-873-                }}
+src/pages/Home.tsx-874-                className="p-1.5 bg-gray-100 hover:bg-gray-200 rounded-full text-gray-600 transition-colors dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600"
+--
+src/pages/Home.tsx-934-                    value={newCustomerForm.name}
+src/pages/Home.tsx-935-                    onChange={(e) =>
+src/pages/Home.tsx:936:                      setNewCustomerForm({
+src/pages/Home.tsx-937-                        ...newCustomerForm,
+src/pages/Home.tsx-938-                        name: e.target.value,
+--
+src/pages/Home.tsx-946-                    value={newCustomerForm.phone}
+src/pages/Home.tsx-947-                    onChange={(e) =>
+src/pages/Home.tsx:948:                      setNewCustomerForm({
+src/pages/Home.tsx-949-                        ...newCustomerForm,
+src/pages/Home.tsx-950-                        phone: e.target.value,
+--
+src/pages/Home.tsx-974-                        value={newCustomerForm.address}
+src/pages/Home.tsx-975-                        onChange={(e) =>
+src/pages/Home.tsx:976:                          setNewCustomerForm({
+src/pages/Home.tsx-977-                            ...newCustomerForm,
+src/pages/Home.tsx-978-                            address: e.target.value,
+--
+src/pages/Home.tsx-986-                        value={newCustomerForm.notes}
+src/pages/Home.tsx-987-                        onChange={(e) =>
+src/pages/Home.tsx:988:                          setNewCustomerForm({
+src/pages/Home.tsx-989-                            ...newCustomerForm,
+src/pages/Home.tsx-990-                            notes: e.target.value,
+--
+src/pages/OrderDetails.tsx-85-
+src/pages/OrderDetails.tsx-86-  const openAddForm = () => {
+src/pages/OrderDetails.tsx:87:    setNewItem({ quantity: 1, price: 0 });
+src/pages/OrderDetails.tsx:88:    setEditingItemId(null);
+src/pages/OrderDetails.tsx:89:    setAddingItem(true);
+src/pages/OrderDetails.tsx:90:    setShowMoreInfo(false);
+src/pages/OrderDetails.tsx:91:    setShowQuantityDropdown(false);
+src/pages/OrderDetails.tsx-92-  };
+src/pages/OrderDetails.tsx-93-
+src/pages/OrderDetails.tsx-94-  const openEditForm = (item: Item) => {
+src/pages/OrderDetails.tsx:95:    setNewItem(item);
+src/pages/OrderDetails.tsx:96:    setEditingItemId(item.id);
+src/pages/OrderDetails.tsx:97:    setAddingItem(false);
+src/pages/OrderDetails.tsx:98:    setShowMoreInfo(!!item.url || !!item.sku || !!item.image);
+src/pages/OrderDetails.tsx:99:    setShowQuantityDropdown(false);
+src/pages/OrderDetails.tsx-100-  };
+src/pages/OrderDetails.tsx-101-
+src/pages/OrderDetails.tsx-102-  const closeForm = () => {
+src/pages/OrderDetails.tsx:103:    setAddingItem(false);
+src/pages/OrderDetails.tsx:104:    setEditingItemId(null);
+src/pages/OrderDetails.tsx:105:    setNewItem({ quantity: 1, price: 0 });
+src/pages/OrderDetails.tsx:106:    setShowMoreInfo(false);
+src/pages/OrderDetails.tsx:107:    setShowQuantityDropdown(false);
+src/pages/OrderDetails.tsx-108-  };
+src/pages/OrderDetails.tsx-109-
+--
+src/pages/OrderDetails.tsx-135-      const reader = new FileReader();
+src/pages/OrderDetails.tsx-136-      reader.onloadend = () => {
+src/pages/OrderDetails.tsx:137:        setNewItem({ ...newItem, image: reader.result as string });
+src/pages/OrderDetails.tsx-138-      };
+src/pages/OrderDetails.tsx-139-      reader.readAsDataURL(file);
+--
+src/pages/OrderDetails.tsx-147-
+src/pages/OrderDetails.tsx-148-  const removeItem = (itemId: string) => {
+src/pages/OrderDetails.tsx:149:    setDeleteItemConfirmId(itemId);
+src/pages/OrderDetails.tsx-150-  };
+src/pages/OrderDetails.tsx-151-
+--
+src/pages/OrderDetails.tsx-155-        items: order.items.filter((i) => i.id !== deleteItemConfirmId),
+src/pages/OrderDetails.tsx-156-      });
+src/pages/OrderDetails.tsx:157:      setDeleteItemConfirmId(null);
+src/pages/OrderDetails.tsx-158-    }
+src/pages/OrderDetails.tsx-159-  };
+src/pages/OrderDetails.tsx-160-
+src/pages/OrderDetails.tsx-161-  const handleDeleteOrder = () => {
+src/pages/OrderDetails.tsx:162:    setShowDeleteOrderConfirm(true);
+src/pages/OrderDetails.tsx-163-  };
+src/pages/OrderDetails.tsx-164-
+--
+src/pages/OrderDetails.tsx-173-    if (order.orderNumber) {
+src/pages/OrderDetails.tsx-174-      navigator.clipboard.writeText(order.orderNumber);
+src/pages/OrderDetails.tsx:175:      setCopiedOrderId(order.id);
+src/pages/OrderDetails.tsx:176:      setTimeout(() => setCopiedOrderId(null), 1500);
+src/pages/OrderDetails.tsx-177-    }
+src/pages/OrderDetails.tsx-178-  };
+--
+src/pages/OrderDetails.tsx-180-  const handleCopySku = (sku: string, id: string) => {
+src/pages/OrderDetails.tsx-181-    navigator.clipboard.writeText(sku);
+src/pages/OrderDetails.tsx:182:    setCopiedSkuId(id);
+src/pages/OrderDetails.tsx:183:    setTimeout(() => setCopiedSkuId(null), 1500);
+src/pages/OrderDetails.tsx-184-  };
+src/pages/OrderDetails.tsx-185-
+src/pages/OrderDetails.tsx-186-  const handleCopyUrl = (url: string, id: string) => {
+src/pages/OrderDetails.tsx-187-    navigator.clipboard.writeText(url);
+src/pages/OrderDetails.tsx:188:    setCopiedUrlId(id);
+src/pages/OrderDetails.tsx:189:    setTimeout(() => setCopiedUrlId(null), 1500);
+src/pages/OrderDetails.tsx-190-  };
+src/pages/OrderDetails.tsx-191-
+--
+src/pages/OrderDetails.tsx-389-                    value={newItem.name || ""}
+src/pages/OrderDetails.tsx-390-                    onChange={(e) =>
+src/pages/OrderDetails.tsx:391:                      setNewItem({ ...newItem, name: e.target.value })
+src/pages/OrderDetails.tsx-392-                    }
+src/pages/OrderDetails.tsx-393-                    className="flex-[2] min-w-0 bg-gray-50 border border-gray-200 rounded-xl px-3 py-3 focus:ring-2 focus:ring-purple-500 outline-none dark:bg-gray-900 dark:border-gray-600"
+--
+src/pages/OrderDetails.tsx-398-                    value={newItem.sku || ""}
+src/pages/OrderDetails.tsx-399-                    onChange={(e) =>
+src/pages/OrderDetails.tsx:400:                      setNewItem({ ...newItem, sku: e.target.value })
+src/pages/OrderDetails.tsx-401-                    }
+src/pages/OrderDetails.tsx-402-                    className="flex-1 min-w-0 md:max-w-[120px] bg-gray-50 border border-gray-200 rounded-xl px-2 py-3 focus:ring-2 focus:ring-purple-500 outline-none text-left dark:bg-gray-900 dark:border-gray-600"
+--
+src/pages/OrderDetails.tsx-413-                    value={newItem.size || ""}
+src/pages/OrderDetails.tsx-414-                    onChange={(e) =>
+src/pages/OrderDetails.tsx:415:                      setNewItem({ ...newItem, size: e.target.value })
+src/pages/OrderDetails.tsx-416-                    }
+src/pages/OrderDetails.tsx-417-                    className="flex-[1.2] min-w-0 w-0 bg-gray-50 border border-gray-200 rounded-xl px-2 py-3 focus:ring-2 focus:ring-purple-500 outline-none dark:bg-gray-900 dark:border-gray-600"
+--
+src/pages/OrderDetails.tsx-422-                    value={newItem.color || ""}
+src/pages/OrderDetails.tsx-423-                    onChange={(e) =>
+src/pages/OrderDetails.tsx:424:                      setNewItem({ ...newItem, color: e.target.value })
+src/pages/OrderDetails.tsx-425-                    }
+src/pages/OrderDetails.tsx-426-                    className="flex-[1.2] min-w-0 w-0 bg-gray-50 border border-gray-200 rounded-xl px-2 py-3 focus:ring-2 focus:ring-purple-500 outline-none dark:bg-gray-900 dark:border-gray-600"
+--
+src/pages/OrderDetails.tsx-434-                    }
+src/pages/OrderDetails.tsx-435-                    onChange={(e) =>
+src/pages/OrderDetails.tsx:436:                      setNewItem({ ...newItem, price: Number(e.target.value) })
+src/pages/OrderDetails.tsx-437-                    }
+src/pages/OrderDetails.tsx-438-                    className="flex-[1.2] min-w-0 w-0 bg-gray-50 border border-gray-200 rounded-xl px-2 py-3 focus:ring-2 focus:ring-purple-500 outline-none dark:bg-gray-900 dark:border-gray-600"
+--
+src/pages/OrderDetails.tsx-442-                      type="button"
+src/pages/OrderDetails.tsx-443-                      onClick={() =>
+src/pages/OrderDetails.tsx:444:                        setShowQuantityDropdown(!showQuantityDropdown)
+src/pages/OrderDetails.tsx-445-                      }
+src/pages/OrderDetails.tsx-446-                      className="w-full bg-gray-50 border border-gray-200 rounded-xl px-2 py-3 focus:ring-2 focus:ring-purple-500 outline-none flex justify-between items-center text-gray-700 dark:bg-gray-900 dark:border-gray-600 dark:text-gray-200"
+--
+src/pages/OrderDetails.tsx-459-                              key={num}
+src/pages/OrderDetails.tsx-460-                              onClick={() => {
+src/pages/OrderDetails.tsx:461:                                setNewItem({ ...newItem, quantity: num });
+src/pages/OrderDetails.tsx:462:                                setShowQuantityDropdown(false);
+src/pages/OrderDetails.tsx-463-                              }}
+src/pages/OrderDetails.tsx-464-                              className="w-full text-center py-2 hover:bg-purple-50 text-sm border-b border-gray-50 last:border-0 transition-colors dark:border-gray-700"
+--
+src/pages/OrderDetails.tsx-493-                      value={newItem.url || ""}
+src/pages/OrderDetails.tsx-494-                      onChange={(e) =>
+src/pages/OrderDetails.tsx:495:                        setNewItem({ ...newItem, url: e.target.value })
+src/pages/OrderDetails.tsx-496-                      }
+src/pages/OrderDetails.tsx-497-                      className="w-full bg-gray-50 border border-gray-200 rounded-xl px-3 py-3 focus:ring-2 focus:ring-purple-500 outline-none text-right placeholder-gray-400 dark:bg-gray-900 dark:border-gray-600"
+--
+src/pages/OrderDetails.tsx-1076-                const bId = addBatch();
+src/pages/OrderDetails.tsx-1077-                updateOrder(order.id, { batchId: bId });
+src/pages/OrderDetails.tsx:1078:                setShowSelectBatchModal(false);
+src/pages/OrderDetails.tsx-1079-              }}
+src/pages/OrderDetails.tsx-1080-              className="w-full mb-3 bg-purple-50 hover:bg-purple-100 text-purple-700 rounded-xl px-4 py-3 font-bold flex items-center justify-center gap-2 transition-colors dark:bg-purple-900/30 dark:text-purple-400 dark:hover:bg-purple-900/50"
+--
+src/pages/OrderDetails.tsx-1096-                onClick={() => {
+src/pages/OrderDetails.tsx-1097-                  updateOrder(order.id, { batchId: undefined });
+src/pages/OrderDetails.tsx:1098:                  setShowSelectBatchModal(false);
+src/pages/OrderDetails.tsx-1099-                }}
+src/pages/OrderDetails.tsx-1100-                className={`p-3 rounded-xl border cursor-pointer flex justify-between items-center transition-colors ${!order.batchId ? 'border-purple-500 bg-purple-50 dark:bg-purple-900/20' : 'border-gray-100 hover:bg-gray-50 dark:border-gray-700 dark:hover:bg-gray-700'}`}
+--
+src/pages/OrderDetails.tsx-1110-                  onClick={() => {
+src/pages/OrderDetails.tsx-1111-                    updateOrder(order.id, { batchId: b.id });
+src/pages/OrderDetails.tsx:1112:                    setShowSelectBatchModal(false);
+src/pages/OrderDetails.tsx-1113-                  }}
+src/pages/OrderDetails.tsx-1114-                  className={`p-3 rounded-xl border cursor-pointer flex justify-between items-center transition-colors ${order.batchId === b.id ? 'border-purple-500 bg-purple-50 dark:bg-purple-900/20' : 'border-gray-100 hover:bg-gray-50 dark:border-gray-700 dark:hover:bg-gray-700'}`}
+--
+src/pages/OrderDetails.tsx-1159-                  onClick={() => {
+src/pages/OrderDetails.tsx-1160-                    updateOrder(order.id, { customerId: c.id });
+src/pages/OrderDetails.tsx:1161:                    setShowSelectCustomerModal(false);
+src/pages/OrderDetails.tsx-1162-                  }}
+src/pages/OrderDetails.tsx-1163-                  className={`p-3 rounded-xl border cursor-pointer flex justify-between items-center transition-colors ${order.customerId === c.id ? 'border-purple-500 bg-purple-50 dark:bg-purple-900/20' : 'border-gray-100 hover:bg-gray-50 dark:border-gray-700 dark:hover:bg-gray-700'}`}
+--
+src/store.ts-22-  const user = auth.currentUser;
+src/store.ts-23-  if (user) {
+src/store.ts:24:    setDoc(
+src/store.ts-25-      doc(db, collectionName, id),
+src/store.ts-26-      { ...data, userId: user.uid },
+--
+src/components/Layout.tsx-38-    const unsubscribe = onAuthStateChanged(auth, (user) => {
+src/components/Layout.tsx-39-      if (user) {
+src/components/Layout.tsx:40:        setIsAuthenticated(true);
+src/components/Layout.tsx:41:        setSyncStatus("active");
+src/components/Layout.tsx-42-        if (localStorage.getItem("autoSync") === "true") {
+src/components/Layout.tsx-43-          startRealtimeSync(user.uid);
+src/components/Layout.tsx-44-        }
+src/components/Layout.tsx-45-      } else {
+src/components/Layout.tsx:46:        setIsAuthenticated(false);
+src/components/Layout.tsx:47:        setSyncStatus("idle");
+src/components/Layout.tsx-48-        stopRealtimeSync();
+src/components/Layout.tsx-49-      }
+--
+src/components/Layout.tsx-57-        // Manual one-time sync if auto-sync is off
+src/components/Layout.tsx-58-        if (isSyncing) return;
+src/components/Layout.tsx:59:        setIsSyncing(true);
+src/components/Layout.tsx-60-        try {
+src/components/Layout.tsx-61-          if (auth.currentUser) {
+src/components/Layout.tsx-62-            await runInitialSync(auth.currentUser.uid);
+src/components/Layout.tsx:63:            setSyncStatus("success");
+src/components/Layout.tsx:64:            setTimeout(() => setSyncStatus("active"), 2000);
+src/components/Layout.tsx-65-          }
+src/components/Layout.tsx-66-        } catch (e) {
+src/components/Layout.tsx-67-          console.error("Manual sync error:", e);
+src/components/Layout.tsx:68:          setSyncStatus("error");
+src/components/Layout.tsx:69:          setTimeout(() => setSyncStatus("active"), 4000);
+src/components/Layout.tsx-70-        } finally {
+src/components/Layout.tsx:71:          setIsSyncing(false);
+src/components/Layout.tsx-72-        }
+src/components/Layout.tsx-73-      } else {
+src/components/Layout.tsx:74:        setSyncStatus("success");
+src/components/Layout.tsx:75:        setTimeout(() => setSyncStatus("active"), 2000);
+src/components/Layout.tsx-76-      }
+src/components/Layout.tsx-77-      return;
+--
+src/components/Layout.tsx-79-
+src/components/Layout.tsx-80-    if (isSyncing) return;
+src/components/Layout.tsx:81:    setIsSyncing(true);
+src/components/Layout.tsx:82:    setSyncStatus("idle");
+src/components/Layout.tsx-83-    try {
+src/components/Layout.tsx-84-      await signIn();
+src/components/Layout.tsx-85-    } catch (e) {
+src/components/Layout.tsx-86-      console.error(e);
+src/components/Layout.tsx:87:      setSyncStatus("error");
+src/components/Layout.tsx:88:      setTimeout(() => setSyncStatus("idle"), 4000);
+src/components/Layout.tsx-89-    } finally {
+src/components/Layout.tsx:90:      setIsSyncing(false);
+src/components/Layout.tsx-91-    }
+src/components/Layout.tsx-92-  };
+--
+src/components/Layout.tsx-94-  const toggleAutoSync = () => {
+src/components/Layout.tsx-95-    const newVal = !autoSync;
+src/components/Layout.tsx:96:    setAutoSync(newVal);
+src/components/Layout.tsx-97-    localStorage.setItem("autoSync", String(newVal));
+src/components/Layout.tsx-98-
+src/components/Layout.tsx:99:    setToastMessage(
+src/components/Layout.tsx-100-      newVal ? "تم تفعيل المزامنة التلقائية" : "تم تعطيل المزامنة التلقائية",
+src/components/Layout.tsx-101-    );
+src/components/Layout.tsx:102:    setTimeout(() => setToastMessage(null), 3500);
+src/components/Layout.tsx-103-
+src/components/Layout.tsx-104-    // Apply immediate effect if authenticated
+--
+src/components/TextFitter.tsx-42-
+src/components/TextFitter.tsx-43-      if (contentWidth > containerWidth && containerWidth > 0) {
+src/components/TextFitter.tsx:44:        setScale(containerWidth / contentWidth);
+src/components/TextFitter.tsx-45-      } else {
+src/components/TextFitter.tsx:46:        setScale(1);
+src/components/TextFitter.tsx-47-      }
+src/components/TextFitter.tsx-48-    };

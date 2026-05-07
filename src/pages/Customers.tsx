@@ -34,16 +34,18 @@ const SORT_LABELS: Record<SortOptionCustomers, string> = {
 };
 
 export default function Customers() {
-  const { customers, orders, addCustomer, updateCustomer, deleteCustomer } =
-    useStore();
-  const {
-    searchQuery,
-    setSearchQuery,
-    sortBy,
-    setSortBy,
-    sortDirection,
-    setSortDirection,
-  } = useCustomersFilterStore();
+  const customers = useStore(state => state.customers);
+  const orders = useStore(state => state.orders);
+  const addCustomer = useStore(state => state.addCustomer);
+  const updateCustomer = useStore(state => state.updateCustomer);
+  const deleteCustomer = useStore(state => state.deleteCustomer);
+  
+  const searchQuery = useCustomersFilterStore(state => state.searchQuery);
+  const setSearchQuery = useCustomersFilterStore(state => state.setSearchQuery);
+  const sortBy = useCustomersFilterStore(state => state.sortBy);
+  const setSortBy = useCustomersFilterStore(state => state.setSortBy);
+  const sortDirection = useCustomersFilterStore(state => state.sortDirection);
+  const setSortDirection = useCustomersFilterStore(state => state.setSortDirection);
   const location = useLocation();
   const [isAdding, setIsAdding] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);

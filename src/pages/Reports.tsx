@@ -13,7 +13,8 @@ import { STATUS_LABELS, STATUS_COLORS, OrderStatus } from "../types";
 import clsx from "clsx";
 
 export default function Reports() {
-  const { orders, customers } = useStore();
+  const orders = useStore(state => state.orders);
+  const customers = useStore(state => state.customers);
   const [selectedStatusModal, setSelectedStatusModal] =
     useState<OrderStatus | null>(null);
   const [selectedFinanceModal, setSelectedFinanceModal] = useState<

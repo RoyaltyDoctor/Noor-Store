@@ -107,20 +107,6 @@ export default function BatchDetails() {
     setIsEditingDocs(false);
   };
 
-  if (!batch) {
-    return (
-      <div className="p-4 text-center text-gray-500 mt-20" dir="rtl">
-        <p>لم يتم العثور على السلة.</p>
-        <button
-          onClick={() => navigate("/batches")}
-          className="mt-4 text-purple-600 underline"
-        >
-          العودة
-        </button>
-      </div>
-    );
-  }
-
   const [showExtraFields, setShowExtraFields] = useState(false);
 
   // Calculate Batch Financials
@@ -136,10 +122,24 @@ export default function BatchDetails() {
     return {
       totalItemsCost,
       expectedShipping,
-      bankFees: batch.bankFees || 0,
-      totalCost: totalItemsCost + expectedShipping + (batch.bankFees || 0)
+      bankFees: batch?.bankFees || 0,
+      totalCost: totalItemsCost + expectedShipping + (batch?.bankFees || 0)
     };
   }, [orders, batch]);
+
+  if (!batch) {
+    return (
+      <div className="p-4 text-center text-gray-500 mt-20" dir="rtl">
+        <p>لم يتم العثور على السلة.</p>
+        <button
+          onClick={() => navigate("/batches")}
+          className="mt-4 text-purple-600 underline"
+        >
+          العودة
+        </button>
+      </div>
+    );
+  }
 
   const statuses: OrderStatus[] = [
     "PENDING",
