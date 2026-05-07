@@ -4,7 +4,7 @@ import React, {
   useEffect,
   useRef,
 } from "react";
-import { useStore, useFilterStore, DateFilterType } from "../store";
+import { useStore, useSettingsStore, useFilterStore, DateFilterType } from "../store";
 import { Link, useNavigate } from "react-router-dom";
 import {
   Plus,
@@ -38,6 +38,7 @@ import {
 import { TextFitter } from "../components/TextFitter";
 
 export default function Home() {
+  const currencySymbol = useSettingsStore(state => state.currencySymbol);
   const orders = useStore(state => state.orders);
   const customers = useStore(state => state.customers);
   const batches = useStore(state => state.batches);
@@ -208,15 +209,15 @@ export default function Home() {
         break;
       case "HIGHEST_PRICE":
         filtered.sort((a, b) => {
-          const totalA = (a.items || []).reduce((sum, item) => sum + item.price * item.quantity, 0) + (a.serviceFee || 0) + (a.shippingFee || 0);
-          const totalB = (b.items || []).reduce((sum, item) => sum + item.price * item.quantity, 0) + (b.serviceFee || 0) + (b.shippingFee || 0);
+          const totalA = (a.items || []).reduce((sum, item) => sum + item.price * item.quantity, 0) + (a.serviceFee || 0) + (a.shippingFee || 0) + (a.additionalFees || 0) - (a.discount || 0);
+          const totalB = (b.items || []).reduce((sum, item) => sum + item.price * item.quantity, 0) + (b.serviceFee || 0) + (b.shippingFee || 0) + (b.additionalFees || 0) - (b.discount || 0);
           return totalB - totalA;
         });
         break;
       case "LOWEST_PRICE":
         filtered.sort((a, b) => {
-          const totalA = (a.items || []).reduce((sum, item) => sum + item.price * item.quantity, 0) + (a.serviceFee || 0) + (a.shippingFee || 0);
-          const totalB = (b.items || []).reduce((sum, item) => sum + item.price * item.quantity, 0) + (b.serviceFee || 0) + (b.shippingFee || 0);
+          const totalA = (a.items || []).reduce((sum, item) => sum + item.price * item.quantity, 0) + (a.serviceFee || 0) + (a.shippingFee || 0) + (a.additionalFees || 0) - (a.discount || 0);
+          const totalB = (b.items || []).reduce((sum, item) => sum + item.price * item.quantity, 0) + (b.serviceFee || 0) + (b.shippingFee || 0) + (b.additionalFees || 0) - (b.discount || 0);
           return totalA - totalB;
         });
         break;
@@ -608,13 +609,15 @@ export default function Home() {
 
             const serviceFee = order.serviceFee || 0;
             const shippingFee = order.shippingFee || 0;
+            const additionalFees = order.additionalFees || 0;
+            const discount = order.discount || 0;
             const deposit = order.deposit || 0;
 
             const itemsTotal = (order.items || []).reduce(
               (sum, item) => sum + item.price * item.quantity,
               0,
             );
-            const total = itemsTotal + serviceFee + shippingFee;
+            const total = itemsTotal + serviceFee + shippingFee + additionalFees - discount;
             const remaining = total - deposit;
             const itemCount = (order.items || []).reduce(
               (acc, i) => acc + i.quantity,
@@ -719,9 +722,28 @@ export default function Home() {
                   </div>
                 </div>
 
-                <div className="pt-2 flex items-center justify-between">
+                {((order.discount || 0) > 0 || (order.additionalFees || 0) > 0 || (order.shippingFee || 0) > 0) && (
+                  <div className="flex flex-wrap gap-2 mb-3">
+                    {(order.discount || 0) > 0 && (
+                      <div className="text-[10px] text-red-600 bg-red-50 border border-red-100 rounded px-1.5 py-0.5 dark:text-red-400 dark:bg-red-900/30 dark:border-red-900/50">
+                        خصم: {order.discount} {currencySymbol}
+                      </div>
+                    )}
+                    {(order.additionalFees || 0) > 0 && (
+                      <div className="text-[10px] text-orange-600 bg-orange-50 border border-orange-100 rounded px-1.5 py-0.5 dark:text-orange-400 dark:bg-orange-900/30 dark:border-orange-900/50">
+                        رسوم إضافية: {order.additionalFees} {currencySymbol}
+                      </div>
+                    )}
+                    {(order.shippingFee || 0) > 0 && (
+                      <div className="text-[10px] text-blue-600 bg-blue-50 border border-blue-100 rounded px-1.5 py-0.5 dark:text-blue-400 dark:bg-blue-900/30 dark:border-blue-900/50">
+                        شحن: {order.shippingFee} {currencySymbol}
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                <div className="pt-2 flex items-center justify-between border-t border-gray-100 dark:border-gray-700">
                   <span className="text-[10px] text-gray-400">
-                    تم الإنشاء:{" "}
                     {order.dates?.created &&
                     !isNaN(new Date(order.dates.created).getTime())
                       ? format(new Date(order.dates.created), "yyyy/MM/dd")
@@ -836,7 +858,7 @@ export default function Home() {
                         )}
                       </div>
                       <div className="mt-1.5 text-xs font-bold text-purple-700 dark:text-purple-300">
-                        {item.price} ر.س{" "}
+                        {item.price} {currencySymbol}{" "}
                         <span className="text-gray-400 font-normal">
                           ×{item.quantity}
                         </span>

@@ -1,5 +1,5 @@
 import { useState, useMemo } from "react";
-import { useStore } from "../store";
+import { useStore, useSettingsStore } from "../store";
 import { Link } from "react-router-dom";
 import {
   BarChart3,
@@ -13,6 +13,7 @@ import { STATUS_LABELS, STATUS_COLORS, OrderStatus } from "../types";
 import clsx from "clsx";
 
 export default function Reports() {
+  const currencySymbol = useSettingsStore(state => state.currencySymbol);
   const orders = useStore(state => state.orders);
   const customers = useStore(state => state.customers);
   const [selectedStatusModal, setSelectedStatusModal] =
@@ -38,8 +39,10 @@ export default function Reports() {
       const itemsTotal = (o.items || []).reduce((s, i) => s + i.price * i.quantity, 0);
       const serviceFee = o.serviceFee || 0;
       const shippingFee = o.shippingFee || 0;
+      const additionalFees = o.additionalFees || 0;
+      const discount = o.discount || 0;
       const deposit = o.deposit || 0;
-      const orderTotal = itemsTotal + serviceFee + shippingFee;
+      const orderTotal = itemsTotal + serviceFee + shippingFee + additionalFees - discount;
       total += orderTotal;
       payments += deposit;
     });
@@ -58,8 +61,10 @@ export default function Reports() {
         );
         const serviceFee = o.serviceFee || 0;
         const shippingFee = o.shippingFee || 0;
+        const additionalFees = o.additionalFees || 0;
+        const discount = o.discount || 0;
         const deposit = o.deposit || 0;
-        const total = itemsTotal + serviceFee + shippingFee;
+        const total = itemsTotal + serviceFee + shippingFee + additionalFees - discount;
         const remaining = total - deposit;
         const customer = customers.find((c) => c.id === o.customerId);
 
@@ -151,7 +156,7 @@ export default function Reports() {
                   إجمالي المبيعات
                 </p>
                 <p className="text-lg font-black text-gray-900 dark:text-white">
-                  {financials.total} ر.س
+                  {financials.total} {currencySymbol}
                 </p>
               </div>
             </div>
@@ -171,7 +176,7 @@ export default function Reports() {
                   العرابين والمدفوعات
                 </p>
                 <p className="text-lg font-black text-green-600 dark:text-green-400">
-                  {financials.payments} ر.س
+                  {financials.payments} {currencySymbol}
                 </p>
               </div>
             </div>
@@ -191,7 +196,7 @@ export default function Reports() {
                   المبالغ المتبقية
                 </p>
                 <p className="text-lg font-black text-red-500 dark:text-red-400">
-                  {financials.remaining} ر.س
+                  {financials.remaining} {currencySymbol}
                 </p>
               </div>
             </div>
@@ -318,7 +323,7 @@ export default function Reports() {
                           {selectedFinanceModal === "PAYMENTS" && data.deposit}
                           {selectedFinanceModal === "REMAINING" &&
                             data.remaining}{" "}
-                          ر.س
+                          {currencySymbol}
                         </span>
                       </div>
                     </div>

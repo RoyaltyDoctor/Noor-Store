@@ -210,6 +210,23 @@ interface AppState {
   }) => void;
 }
 
+export interface SettingsState {
+  currencySymbol: string;
+  setCurrencySymbol: (val: string) => void;
+}
+
+export const useSettingsStore = create<SettingsState>()(
+  persist(
+    (set) => ({
+      currencySymbol: "ر.س",
+      setCurrencySymbol: (val) => set({ currencySymbol: val }),
+    }),
+    {
+      name: "settings-store",
+    }
+  )
+);
+
 export const useStore = create<AppState>()(
   persist(
     (set, get) => ({
@@ -224,10 +241,16 @@ export const useStore = create<AppState>()(
         const id = uuidv4();
         const state = get();
         
-        let batchNumber = `B-${Math.floor(1000 + Math.random() * 9000)}`;
-        while (state.batches.some(b => b.batchNumber === batchNumber)) {
-          batchNumber = `B-${Math.floor(1000 + Math.random() * 9000)}`;
-        }
+        let maxNumber = 0;
+        state.batches.forEach(b => {
+          if (b.batchNumber && b.batchNumber.startsWith('B-')) {
+            const num = parseInt(b.batchNumber.split('-')[1], 10);
+            if (!isNaN(num) && num > maxNumber) {
+              maxNumber = num;
+            }
+          }
+        });
+        const batchNumber = `B-${maxNumber + 1}`;
 
         const newBatch: Batch = {
           id,

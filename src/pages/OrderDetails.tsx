@@ -25,8 +25,10 @@ import { v4 as uuidv4 } from "uuid";
 import clsx from "clsx";
 import { motion, AnimatePresence } from "motion/react";
 import { TextFitter } from "../components/TextFitter";
+import { useSettingsStore } from "../store";
 
 export default function OrderDetails() {
+  const currencySymbol = useSettingsStore(state => state.currencySymbol);
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const orders = useStore(state => state.orders);
@@ -52,6 +54,8 @@ export default function OrderDetails() {
   const [showMoreInfo, setShowMoreInfo] = useState(false);
 
   const [showQuantityDropdown, setShowQuantityDropdown] = useState(false);
+  const [showDiscountInput, setShowDiscountInput] = useState(false);
+  const [showFeeInput, setShowFeeInput] = useState(false);
 
   const [copiedOrderId, setCopiedOrderId] = useState<string | null>(null);
   const [copiedSkuId, setCopiedSkuId] = useState<string | null>(null);
@@ -80,8 +84,10 @@ export default function OrderDetails() {
   const serviceFee = order?.serviceFee || 0;
   const shippingFee = order?.shippingFee || 0;
   const deposit = order?.deposit || 0;
+  const discount = order?.discount || 0;
+  const additionalFees = order?.additionalFees || 0;
 
-  const total = itemsTotal + serviceFee + shippingFee;
+  const total = itemsTotal + serviceFee + shippingFee + additionalFees - discount;
   const remaining = total - deposit;
 
   const isFormOpen = addingItem || editingItemId !== null;
@@ -372,12 +378,20 @@ export default function OrderDetails() {
           <div className="space-y-4">
             {/* Form is at the top */}
             {!isFormOpen ? (
-              <button
-                onClick={openAddForm}
-                className="w-full py-4 bg-white border border-gray-200 text-gray-700 rounded-2xl font-bold flex items-center justify-center gap-2 hover:bg-gray-50 transition-all shadow-sm dark:bg-gray-800 dark:border-gray-600 dark:text-gray-200 dark:shadow-none"
-              >
-                <Plus className="w-5 h-5" /> إضافة منتج جديد
-              </button>
+              <div className="flex items-stretch gap-3">
+                <button
+                  onClick={openAddForm}
+                  className="flex-1 py-4 bg-white border border-gray-200 text-gray-700 rounded-2xl font-bold flex items-center justify-center gap-2 hover:bg-gray-50 transition-all shadow-sm dark:bg-gray-800 dark:border-gray-600 dark:text-gray-200 dark:shadow-none"
+                >
+                  <Plus className="w-5 h-5" /> إضافة منتج جديد
+                </button>
+                <div className="px-5 bg-purple-50 text-purple-700 border border-purple-100 rounded-2xl flex flex-col items-center justify-center shadow-sm dark:bg-purple-900/30 dark:border-purple-800 dark:text-purple-300">
+                  <span className="text-[10px] font-bold opacity-80 mb-0.5 whitespace-nowrap">قيمة المنتجات</span>
+                  <span className="font-bold whitespace-nowrap">
+                    {itemsTotal} <span className="font-normal text-xs">{currencySymbol}</span>
+                  </span>
+                </div>
+              </div>
             ) : (
               <div className="bg-white p-4 rounded-2xl border-2 border-purple-200 shadow-sm space-y-3 dark:bg-gray-800 dark:shadow-none">
                 <div className="flex justify-between items-center mb-1">
@@ -662,12 +676,18 @@ export default function OrderDetails() {
                       </div>
                       <div className="mt-3 flex items-center justify-between">
                         <div className="text-sm font-bold text-gray-900 dark:text-white">
-                          {item.price} ر.س{" "}
+                          {item.price} {currencySymbol}{" "}
                           <span className="font-normal text-xs text-gray-500 dark:text-gray-400">
                             ×{item.quantity}
                           </span>
                         </div>
-                        {item.url && (
+                        <div className="flex items-center gap-2">
+                          {item.quantity > 1 && (
+                            <div className="text-xs font-bold text-purple-600 bg-purple-50 px-2 py-0.5 rounded-lg border border-purple-100 dark:bg-purple-900/30 dark:text-purple-400 dark:border-purple-800">
+                              الإجمالي: {item.price * item.quantity} {currencySymbol}
+                            </div>
+                          )}
+                          {item.url && (
                           <div className="flex items-center rtl:flex-row-reverse border border-blue-100 rounded bg-blue-50/50 shadow-sm overflow-hidden text-right h-6 dark:shadow-none">
                             <button
                               onClick={() => handleCopyUrl(item.url!, item.id)}
@@ -695,6 +715,7 @@ export default function OrderDetails() {
                             </a>
                           </div>
                         )}
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -716,7 +737,7 @@ export default function OrderDetails() {
               </h3>
               <div className="text-5xl font-black mb-6">
                 {Math.max(0, remaining).toFixed(2)}{" "}
-                <span className="text-lg font-normal">ر.س</span>
+                <span className="text-lg font-normal">{currencySymbol}</span>
               </div>
 
               <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-4 space-y-3 text-sm relative z-10 border border-white/10 dark:bg-gray-700/50 dark:border-gray-600/50">
@@ -739,6 +760,22 @@ export default function OrderDetails() {
                     +{shippingFee.toFixed(2)}
                   </span>
                 </div>
+                {additionalFees > 0 && (
+                  <div className="flex justify-between items-center">
+                    <span className="text-white/70">رسوم إضافية:</span>
+                    <span className="font-bold text-red-300">
+                      +{additionalFees.toFixed(2)}
+                    </span>
+                  </div>
+                )}
+                {discount > 0 && (
+                  <div className="flex justify-between items-center">
+                    <span className="text-white/70">الخصم:</span>
+                    <span className="font-bold text-green-300">
+                      -{discount.toFixed(2)}
+                    </span>
+                  </div>
+                )}
                 <div className="flex justify-between items-center border-t border-white/20 pt-3 mt-1 dark:border-gray-700">
                   <span className="font-bold text-base">الإجمالي الكلي:</span>
                   <span className="font-bold text-base">
@@ -791,6 +828,84 @@ export default function OrderDetails() {
                   className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 font-medium focus:ring-2 focus:ring-purple-500 outline-none dark:bg-gray-900 dark:border-gray-600"
                 />
               </div>
+              
+              {/* Additional Fees and Discount */}
+              <div className="grid grid-cols-2 gap-3 pt-2 items-end">
+                {/* Discount Column */}
+                <div>
+                  {!(showDiscountInput || discount > 0) ? (
+                    <button 
+                      className="w-full text-xs font-bold text-green-600 bg-green-50 hover:bg-green-100 border border-green-100 px-3 py-3 rounded-xl flex items-center justify-center dark:bg-green-900/30 dark:text-green-400 dark:border-green-900/50 dark:hover:bg-green-900/50 transition-colors" 
+                      onClick={() => setShowDiscountInput(true)}
+                    >
+                      + إضافة خصم
+                    </button>
+                  ) : (
+                    <div className="relative">
+                      <div className="flex justify-between items-center mb-2">
+                        <label className="block text-[10px] sm:text-xs font-bold text-gray-600 dark:text-gray-300">
+                          الخصم <span className="text-gray-400 font-normal">بالريال</span>
+                        </label>
+                        <button 
+                          onClick={() => {
+                            setShowDiscountInput(false);
+                            updateOrder(order.id, { discount: 0 });
+                          }}
+                          className="text-[10px] text-gray-500 hover:text-gray-700 bg-gray-100 px-2 py-0.5 rounded cursor-pointer"
+                        >
+                          إلغاء
+                        </button>
+                      </div>
+                      <input
+                        type="number"
+                        onFocus={(e) => e.target.select()}
+                        value={discount === 0 ? "" : discount}
+                        onChange={(e) => updateOrder(order.id, { discount: Number(e.target.value) })}
+                        className="w-full bg-green-50 border border-green-200 text-green-800 rounded-xl px-4 py-3 font-medium focus:ring-2 focus:ring-green-500 outline-none dark:bg-green-900/30 dark:border-green-800/30 dark:text-green-300"
+                        placeholder="0"
+                      />
+                    </div>
+                  )}
+                </div>
+
+                {/* Additional Fees Column */}
+                <div>
+                  {!(showFeeInput || additionalFees > 0) ? (
+                    <button 
+                      className="w-full text-xs font-bold text-red-600 bg-red-50 hover:bg-red-100 border border-red-100 px-3 py-3 rounded-xl flex items-center justify-center dark:bg-red-900/30 dark:text-red-400 dark:border-red-900/50 dark:hover:bg-red-900/50 transition-colors" 
+                      onClick={() => setShowFeeInput(true)}
+                    >
+                      + رسوم إضافية
+                    </button>
+                  ) : (
+                    <div className="relative">
+                      <div className="flex justify-between items-center mb-2">
+                        <label className="block text-[10px] sm:text-xs font-bold text-gray-600 dark:text-gray-300">
+                          رسوم إضافية <span className="text-gray-400 font-normal">بالريال</span>
+                        </label>
+                        <button 
+                          onClick={() => {
+                            setShowFeeInput(false);
+                            updateOrder(order.id, { additionalFees: 0 });
+                          }}
+                          className="text-[10px] text-red-500 hover:text-red-700 bg-red-50 px-2 py-0.5 rounded cursor-pointer"
+                        >
+                          إلغاء
+                        </button>
+                      </div>
+                      <input
+                        type="number"
+                        onFocus={(e) => e.target.select()}
+                        value={additionalFees === 0 ? "" : additionalFees}
+                        onChange={(e) => updateOrder(order.id, { additionalFees: Number(e.target.value) })}
+                        className="w-full bg-red-50 border border-red-200 text-red-800 rounded-xl px-4 py-3 font-medium focus:ring-2 focus:ring-red-500 outline-none dark:bg-red-900/30 dark:border-red-800/30 dark:text-red-300"
+                        placeholder="0"
+                      />
+                    </div>
+                  )}
+                </div>
+              </div>
+              
               <div>
                 <label className="block text-xs font-bold text-gray-600 mb-2 dark:text-gray-300">
                   العربون المدفوع من العميل{" "}

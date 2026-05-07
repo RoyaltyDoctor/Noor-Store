@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from "react";
-import { useParams, useNavigate, Link } from "react-router-dom";
-import { useStore } from "../store";
+import { useParams, useNavigate, Link, useBlocker } from "react-router-dom";
+import { useStore, useSettingsStore } from "../store";
 import { OrderStatus, STATUS_LABELS, STATUS_COLORS } from "../types";
 import clsx from "clsx";
 import { 
@@ -19,7 +19,8 @@ import {
   Phone,
   UserPlus,
   ChevronDown,
-  ChevronUp
+  ChevronUp,
+  Link2
 } from "lucide-react";
 import { format } from "date-fns";
 import { ar } from "date-fns/locale";
@@ -28,6 +29,7 @@ export default function BatchDetails() {
   const { id } = useParams();
   const navigate = useNavigate();
   const allBatches = useStore((state) => state.batches);
+  const currencySymbol = useSettingsStore((state) => state.currencySymbol);
   const batch = allBatches.find((b) => b.id === id);
   const updateBatch = useStore((state) => state.updateBatch);
   const deleteBatch = useStore((state) => state.deleteBatch);
@@ -39,7 +41,56 @@ export default function BatchDetails() {
   const addCustomer = useStore((state) => state.addCustomer);
 
   const [isEditingDocs, setIsEditingDocs] = useState(false);
+  const [showUnsavedModal, setShowUnsavedModal] = useState(false);
+  const [pendingAction, setPendingAction] = useState<(() => void) | null>(null);
+
+  const [formData, setFormData] = useState({
+    couponEnabled: batch?.couponEnabled || false,
+    couponCode: batch?.couponCode || "",
+    couponType: batch?.couponType || "amount",
+    trackingNumber: batch?.trackingNumber || "",
+    batchUrl: batch?.batchUrl || "",
+    bankFees: batch?.bankFees || 0,
+    shippingFees: batch?.shippingFees || 0,
+    transportFees: batch?.transportFees || 0,
+    notes: batch?.notes || "",
+  });
+
+  const hasChanges = useMemo(() => {
+    return formData.couponEnabled !== (batch?.couponEnabled || false) || 
+      formData.couponCode !== (batch?.couponCode || "") ||
+      formData.couponType !== (batch?.couponType || "amount") ||
+      formData.trackingNumber !== (batch?.trackingNumber || "") ||
+      formData.batchUrl !== (batch?.batchUrl || "") ||
+      formData.bankFees !== (batch?.bankFees || 0) ||
+      formData.shippingFees !== (batch?.shippingFees || 0) ||
+      formData.transportFees !== (batch?.transportFees || 0) ||
+      formData.notes !== (batch?.notes || "");
+  }, [formData, batch]);
+
+  const blocker = useBlocker(
+    ({ currentLocation, nextLocation }) =>
+      isEditingDocs && hasChanges && currentLocation.pathname !== nextLocation.pathname
+  );
+
+  React.useEffect(() => {
+    if (blocker.state === "blocked") {
+      setPendingAction(() => () => blocker.proceed?.());
+      setShowUnsavedModal(true);
+    }
+  }, [blocker]);
+
+  const handleBackOrCancel = (action: () => void) => {
+    if (isEditingDocs && hasChanges) {
+      setPendingAction(() => action);
+      setShowUnsavedModal(true);
+    } else {
+      setIsEditingDocs(false);
+      action();
+    }
+  };
   const [showLinkModal, setShowLinkModal] = useState(false);
+  const [showDeliveredOrders, setShowDeliveredOrders] = useState(false);
   const [linkOrderSearchQuery, setLinkOrderSearchQuery] = useState("");
   const [showNewOrderModal, setShowNewOrderModal] = useState(false);
   const [customerSearch, setCustomerSearch] = useState("");
@@ -59,34 +110,31 @@ export default function BatchDetails() {
   }, [customers, customerSearch]);
 
   const handleSelectCustomer = (cid: string) => {
-    const oid = addOrder(cid);
-    updateOrder(oid, { batchId: id });
-    navigate(`/order/${oid}`);
-    setShowNewOrderModal(false);
+    handleBackOrCancel(() => {
+      const oid = addOrder(cid);
+      updateOrder(oid, { batchId: id, trackingNumber: batch?.trackingNumber, status: batch?.status || "PENDING" });
+      navigate(`/order/${oid}`);
+      setShowNewOrderModal(false);
+    });
   };
 
   const handleCreateCustomerAndOrder = () => {
     if (!newCustomerForm.name) return;
-    const cid = addCustomer({
-      name: newCustomerForm.name,
-      phone: newCustomerForm.phone,
-      address: newCustomerForm.address,
-      notes: newCustomerForm.notes,
+    handleBackOrCancel(() => {
+      const cid = addCustomer({
+        name: newCustomerForm.name,
+        phone: newCustomerForm.phone,
+        address: newCustomerForm.address,
+        notes: newCustomerForm.notes,
+      });
+      const oid = addOrder(cid);
+      updateOrder(oid, { batchId: id, trackingNumber: batch?.trackingNumber, status: batch?.status || "PENDING" });
+      navigate(`/order/${oid}`);
+      setShowNewOrderModal(false);
     });
-    const oid = addOrder(cid);
-    updateOrder(oid, { batchId: id });
-    navigate(`/order/${oid}`);
-    setShowNewOrderModal(false);
   };
 
-  const [formData, setFormData] = useState({
-    couponEnabled: batch?.couponEnabled || false,
-    couponCode: batch?.couponCode || "",
-    trackingNumber: batch?.trackingNumber || "",
-    bankFees: batch?.bankFees || 0,
-    notes: batch?.notes || "",
-  });
-
+  const [copiedUrl, setCopiedUrl] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [deleteAssociatedOrders, setDeleteAssociatedOrders] = useState(false);
 
@@ -102,7 +150,10 @@ export default function BatchDetails() {
   const handleSaveDocs = () => {
     updateBatch(id!, {
       ...formData,
-      bankFees: Number(formData.bankFees) || 0
+      couponValue: Number(formData.couponCode) || 0,
+      bankFees: Number(formData.bankFees) || 0,
+      shippingFees: Number(formData.shippingFees) || 0,
+      transportFees: Number(formData.transportFees) || 0
     });
     setIsEditingDocs(false);
   };
@@ -123,7 +174,9 @@ export default function BatchDetails() {
       totalItemsCost,
       expectedShipping,
       bankFees: batch?.bankFees || 0,
-      totalCost: totalItemsCost + expectedShipping + (batch?.bankFees || 0)
+      shippingFees: batch?.shippingFees || 0,
+      transportFees: batch?.transportFees || 0,
+      totalCost: totalItemsCost + expectedShipping + (batch?.bankFees || 0) + (batch?.shippingFees || 0) + (batch?.transportFees || 0)
     };
   }, [orders, batch]);
 
@@ -156,7 +209,7 @@ export default function BatchDetails() {
       <div className="sticky top-0 bg-white border-b border-gray-200 z-40 px-4 py-3 shadow-sm flex items-center justify-between dark:bg-gray-800 dark:border-gray-700 dark:border-gray-600 dark:shadow-none">
         <div className="flex items-center gap-3">
           <button
-            onClick={() => navigate("/batches")}
+            onClick={() => handleBackOrCancel(() => navigate("/batches"))}
             className="w-10 h-10 flex items-center justify-center bg-gray-50 rounded-xl hover:bg-gray-100 active:scale-95 transition-all text-gray-600 dark:bg-gray-700 dark:hover:bg-gray-600 dark:text-gray-300"
           >
             <ChevronRight className="w-6 h-6" />
@@ -257,47 +310,99 @@ export default function BatchDetails() {
               <FileText className="w-4 h-4 text-orange-500" />
               تفاصيل وتكاليف السلة
             </h3>
-            <button 
-              onClick={() => {
-                if (isEditingDocs) handleSaveDocs();
-                else setIsEditingDocs(true);
-              }}
-              className="text-xs font-bold text-purple-600 bg-purple-50 px-3 py-1 rounded-lg dark:text-purple-400 dark:bg-purple-900/30"
-            >
-              {isEditingDocs ? 'حفظ' : 'تعديل'}
-            </button>
+            {isEditingDocs ? (
+              <div className="flex gap-2">
+                <button 
+                  onClick={() => handleBackOrCancel(() => setIsEditingDocs(false))}
+                  className="text-xs font-bold text-gray-600 bg-gray-100 px-3 py-1 rounded-lg dark:text-gray-300 dark:bg-gray-800"
+                >
+                  إلغاء
+                </button>
+                <button 
+                  onClick={handleSaveDocs}
+                  className="text-xs font-bold text-purple-600 bg-purple-50 px-3 py-1 rounded-lg dark:text-purple-400 dark:bg-purple-900/30"
+                >
+                  حفظ
+                </button>
+              </div>
+            ) : (
+              <button 
+                onClick={() => setIsEditingDocs(true)}
+                className="text-xs font-bold text-purple-600 bg-purple-50 px-3 py-1 rounded-lg dark:text-purple-400 dark:bg-purple-900/30"
+              >
+                تعديل
+              </button>
+            )}
           </div>
 
           {isEditingDocs ? (
             <div className="space-y-4">
-              <div className="flex items-center gap-3 bg-gray-50 p-3 rounded-xl border border-gray-100 dark:bg-gray-900 dark:border-gray-700">
-                <label className="flex items-center gap-2 text-sm font-bold text-gray-700 cursor-pointer dark:text-gray-300">
+              <div className="flex flex-col sm:flex-row sm:items-center gap-3 bg-gray-50 p-3 rounded-xl border border-gray-100 dark:bg-gray-900 dark:border-gray-700">
+                <label className="flex items-center gap-2 text-sm font-bold text-gray-700 cursor-pointer dark:text-gray-300 whitespace-nowrap">
                   <input 
                     type="checkbox" 
                     checked={formData.couponEnabled}
                     onChange={(e) => setFormData({...formData, couponEnabled: e.target.checked})}
                     className="w-4 h-4 text-purple-600 rounded bg-white border-gray-300 focus:ring-purple-500 cursor-pointer dark:bg-gray-800 dark:border-gray-600"
                   />
-                  استخدام كوبون
+                  كوبون
                 </label>
-              </div>
-              
-              {formData.couponEnabled && (
-                <div className="space-y-1">
-                  <label className="text-xs font-bold text-gray-600 block dark:text-gray-400">رمز الكوبون</label>
-                  <div className="relative">
-                    <Tag className="w-4 h-4 absolute right-3 top-1/2 -translate-y-1/2 text-gray-400" />
+                
+                <div className={clsx("flex flex-1 items-center gap-2 transition-opacity duration-200", !formData.couponEnabled && "opacity-50 pointer-events-none")}>
+                  <div className="flex bg-white border border-gray-200 rounded-lg overflow-hidden focus-within:ring-2 focus-within:ring-purple-500 dark:bg-gray-800 dark:border-gray-600" style={{ width: '130px' }}>
+                    <div className="flex-shrink-0 w-8 flex items-center justify-center bg-gray-50 border-l border-gray-200 dark:bg-gray-700 dark:border-gray-600">
+                       <Tag className="w-4 h-4 text-gray-500" />
+                    </div>
                     <input
                       type="text"
                       dir="ltr"
                       value={formData.couponCode}
-                      onChange={(e) => setFormData({...formData, couponCode: e.target.value.toUpperCase()})}
-                      className="w-full bg-white border border-gray-200 rounded-xl pl-3 pr-9 py-2 focus:ring-2 focus:ring-purple-500 outline-none text-left font-mono dark:bg-gray-800 dark:border-gray-600 dark:text-white"
-                      placeholder="e.g. SAVE20"
+                      onChange={(e) => setFormData({...formData, couponCode: e.target.value})}
+                      className="w-full bg-transparent px-1.5 py-1.5 outline-none text-center font-mono text-sm dark:text-white"
+                      placeholder="القيمة"
+                      disabled={!formData.couponEnabled}
                     />
+                    <div className="flex-shrink-0 w-10 flex items-center justify-center text-[10px] text-gray-500 font-bold bg-gray-50 border-r border-gray-200 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-300">
+                      {formData.couponType === 'amount' ? currencySymbol : '%'}
+                    </div>
+                  </div>
+                  <div className="flex flex-1 bg-gray-200/50 p-1 rounded-lg border border-gray-200 dark:bg-gray-800 dark:border-gray-700">
+                    <button
+                      type="button"
+                      disabled={!formData.couponEnabled}
+                      onClick={() => setFormData({...formData, couponType: 'amount'})}
+                      className={clsx(
+                        "flex-1 px-1 py-1 text-xs font-bold rounded-md transition-colors",
+                        formData.couponType === 'amount' ? "bg-white shadow-sm text-gray-900 dark:bg-gray-700 dark:text-white" : "text-gray-500 dark:text-gray-400"
+                      )}
+                    >مبلغ</button>
+                    <button
+                      type="button"
+                      disabled={!formData.couponEnabled}
+                      onClick={() => setFormData({...formData, couponType: 'percentage'})}
+                      className={clsx(
+                        "flex-1 px-1 py-1 text-xs font-bold rounded-md transition-colors",
+                        formData.couponType === 'percentage' ? "bg-white shadow-sm text-gray-900 dark:bg-gray-700 dark:text-white" : "text-gray-500 dark:text-gray-400"
+                      )}
+                    >نسبة</button>
                   </div>
                 </div>
-              )}
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-xs font-bold text-gray-600 block dark:text-gray-400">رابط السلة (URL)</label>
+                <div className="relative">
+                  <Link2 className="w-4 h-4 absolute right-3 top-1/2 -translate-y-1/2 text-gray-400" />
+                  <input
+                    type="url"
+                    dir="ltr"
+                    value={formData.batchUrl}
+                    onChange={(e) => setFormData({...formData, batchUrl: e.target.value})}
+                    className="w-full bg-white border border-gray-200 rounded-xl pl-3 pr-9 py-2 focus:ring-2 focus:ring-purple-500 outline-none text-left dark:bg-gray-800 dark:border-gray-600 dark:text-white"
+                    placeholder="https://"
+                  />
+                </div>
+              </div>
 
               <div className="space-y-1">
                 <label className="text-xs font-bold text-gray-600 block dark:text-gray-400">رقم التتبع</label>
@@ -314,17 +419,45 @@ export default function BatchDetails() {
                 </div>
               </div>
 
-              <div className="space-y-1">
-                <label className="text-xs font-bold text-gray-600 block dark:text-gray-400">رسوم البنك (₪)</label>
-                <div className="relative">
-                  <Landmark className="w-4 h-4 absolute right-3 top-1/2 -translate-y-1/2 text-gray-400" />
-                  <input
-                    type="number"
-                    value={formData.bankFees || ""}
-                    onChange={(e) => setFormData({...formData, bankFees: parseFloat(e.target.value)})}
-                    className="w-full bg-white border border-gray-200 rounded-xl pl-3 pr-9 py-2 focus:ring-2 focus:ring-purple-500 outline-none dark:bg-gray-800 dark:border-gray-600 dark:text-white"
-                    placeholder="0"
-                  />
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                <div className="space-y-1">
+                  <label className="text-[10px] font-bold text-gray-600 block dark:text-gray-400">رسوم البنك ({currencySymbol})</label>
+                  <div className="relative">
+                    <Landmark className="w-4 h-4 absolute right-3 top-1/2 -translate-y-1/2 text-gray-400" />
+                    <input
+                      type="number"
+                      value={formData.bankFees || ""}
+                      onChange={(e) => setFormData({...formData, bankFees: parseFloat(e.target.value)})}
+                      className="w-full bg-white border border-gray-200 rounded-xl pl-3 pr-9 py-2 text-sm focus:ring-2 focus:ring-purple-500 outline-none dark:bg-gray-800 dark:border-gray-600 dark:text-white"
+                      placeholder="0"
+                    />
+                  </div>
+                </div>
+                <div className="space-y-1 text-xs">
+                  <label className="text-[10px] font-bold text-gray-600 block dark:text-gray-400">رسوم الشحن SHEIN ({currencySymbol})</label>
+                  <div className="relative">
+                    <Package className="w-4 h-4 absolute right-3 top-1/2 -translate-y-1/2 text-gray-400" />
+                    <input
+                      type="number"
+                      value={formData.shippingFees || ""}
+                      onChange={(e) => setFormData({...formData, shippingFees: parseFloat(e.target.value)})}
+                      className="w-full bg-white border border-gray-200 rounded-xl pl-3 pr-9 py-2 text-sm focus:ring-2 focus:ring-purple-500 outline-none dark:bg-gray-800 dark:border-gray-600 dark:text-white"
+                      placeholder="0"
+                    />
+                  </div>
+                </div>
+                <div className="space-y-1 text-xs">
+                  <label className="text-[10px] font-bold text-gray-600 block dark:text-gray-400">رسوم مكتب النقل ({currencySymbol})</label>
+                  <div className="relative">
+                    <Landmark className="w-4 h-4 absolute right-3 top-1/2 -translate-y-1/2 text-gray-400" />
+                    <input
+                      type="number"
+                      value={formData.transportFees || ""}
+                      onChange={(e) => setFormData({...formData, transportFees: parseFloat(e.target.value)})}
+                      className="w-full bg-white border border-gray-200 rounded-xl pl-3 pr-9 py-2 text-sm focus:ring-2 focus:ring-purple-500 outline-none dark:bg-gray-800 dark:border-gray-600 dark:text-white"
+                      placeholder="0"
+                    />
+                  </div>
                 </div>
               </div>
 
@@ -338,14 +471,38 @@ export default function BatchDetails() {
                 />
               </div>
 
+              <div className="pt-2 flex gap-2">
+                <button 
+                  onClick={() => handleBackOrCancel(() => setIsEditingDocs(false))}
+                  className="w-1/3 text-sm font-bold text-gray-700 bg-gray-100 hover:bg-gray-200 py-3 rounded-xl transition-colors dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700"
+                >
+                  إلغاء
+                </button>
+                <button 
+                  onClick={handleSaveDocs}
+                  className="w-2/3 text-sm font-bold text-white bg-purple-600 hover:bg-purple-700 py-3 rounded-xl transition-colors shadow-sm"
+                >
+                  حفظ التعديلات
+                </button>
+              </div>
+
             </div>
           ) : (
             <div className="space-y-3">
               <div className="grid grid-cols-2 gap-3">
                 <div className="bg-gray-50 border border-gray-100 rounded-xl p-3 dark:bg-gray-900/50 dark:border-gray-700">
                   <span className="text-[10px] text-gray-500 block mb-1 dark:text-gray-400 flex items-center gap-1"><Tag className="w-3 h-3"/>الكوبون</span>
-                  <span className="text-sm font-bold text-gray-800 dark:text-gray-200">
-                    {batch.couponEnabled ? batch.couponCode || 'مفعل بدون رمز' : 'غير مفعل'}
+                  <span className="text-sm font-bold text-gray-800 dark:text-gray-200 block flex items-baseline gap-1">
+                    {batch.couponEnabled ? (
+                      batch.couponCode ? (
+                        <>
+                          <span dir="ltr">{batch.couponCode}</span>
+                          <span className="text-[10px] text-gray-500 font-normal">
+                            {batch.couponType === 'percentage' ? '%' : currencySymbol}
+                          </span>
+                        </>
+                      ) : 'مفعل بدون رمز'
+                    ) : 'غير مفعل'}
                   </span>
                 </div>
                 <div className="bg-gray-50 border border-gray-100 rounded-xl p-3 dark:bg-gray-900/50 dark:border-gray-700 flex justify-between flex-col">
@@ -355,19 +512,59 @@ export default function BatchDetails() {
                    </span>
                 </div>
               </div>
+              {batch.batchUrl && (
+                <div className="bg-gray-50 border border-gray-100 rounded-xl p-3 dark:bg-gray-900/50 dark:border-gray-700">
+                  <div className="flex items-center justify-between">
+                    <div className="flex-1 min-w-0 pr-2">
+                       <span className="text-[10px] text-gray-500 block mb-1 dark:text-gray-400 flex items-center gap-1"><Link2 className="w-3 h-3"/>رابط السلة</span>
+                       <a 
+                         href={batch.batchUrl.startsWith('http') ? batch.batchUrl : `https://${batch.batchUrl}`}
+                         target="_blank" 
+                         rel="noopener noreferrer" 
+                         className="text-sm text-blue-600 dark:text-blue-400 hover:underline truncate inline-block max-w-[200px] w-full" 
+                         dir="ltr"
+                       >
+                         {batch.batchUrl}
+                       </a>
+                    </div>
+                    <button 
+                      onClick={() => {
+                        if (batch.batchUrl) {
+                          navigator.clipboard.writeText(batch.batchUrl);
+                          setCopiedUrl(true);
+                          setTimeout(() => setCopiedUrl(false), 1500);
+                        }
+                      }}
+                      className="p-2 text-gray-400 hover:text-purple-600 bg-white rounded-lg border border-gray-200 shadow-sm dark:bg-gray-800 dark:border-gray-700"
+                    >
+                      {copiedUrl ? <CheckCircle2 className="w-4 h-4 text-green-500" /> : <Link2 className="w-4 h-4" />}
+                    </button>
+                  </div>
+                </div>
+              )}
               <div className="grid grid-cols-2 gap-3">
                 <div className="bg-gray-50 border border-gray-100 rounded-xl p-3 dark:bg-gray-900/50 dark:border-gray-700">
                   <span className="text-[10px] text-gray-500 block mb-1 dark:text-gray-400 flex items-center gap-1"><Landmark className="w-3 h-3"/>رسوم البنك</span>
                   <span className="text-sm font-bold text-gray-800 dark:text-gray-200">
-                    <span className="text-[10px] ml-0.5">₪</span>
-                    {batch.bankFees || 0}
+                    {batch.bankFees || 0} <span className="text-[10px] text-gray-500 font-normal">{currencySymbol}</span>
                   </span>
                 </div>
                 <div className="bg-gray-50 border border-gray-100 rounded-xl p-3 dark:bg-gray-900/50 dark:border-gray-700">
-                  <span className="text-[10px] text-gray-500 block mb-1 dark:text-gray-400">إجمالي التكلفة المتوقعة للسلة</span>
+                  <span className="text-[10px] text-gray-500 block mb-1 dark:text-gray-400 flex items-center gap-1"><Package className="w-3 h-3"/>رسوم الشحن</span>
+                  <span className="text-sm font-bold text-gray-800 dark:text-gray-200">
+                    {batch.shippingFees || 0} <span className="text-[10px] text-gray-500 font-normal">{currencySymbol}</span>
+                  </span>
+                </div>
+                <div className="bg-gray-50 border border-gray-100 rounded-xl p-3 dark:bg-gray-900/50 dark:border-gray-700">
+                  <span className="text-[10px] text-gray-500 block mb-1 dark:text-gray-400 flex items-center gap-1"><Landmark className="w-3 h-3"/>مكتب النقل</span>
+                  <span className="text-sm font-bold text-gray-800 dark:text-gray-200">
+                    {batch.transportFees || 0} <span className="text-[10px] text-gray-500 font-normal">{currencySymbol}</span>
+                  </span>
+                </div>
+                <div className="bg-gray-50 border border-gray-100 rounded-xl p-3 dark:bg-gray-900/50 dark:border-gray-700">
+                  <span className="text-[10px] text-gray-500 block mb-1 dark:text-gray-400">إجمالي التكلفة</span>
                   <span className="text-sm font-bold text-purple-700 dark:text-purple-400">
-                    <span className="text-[10px] ml-0.5">₪</span>
-                    {financials.totalCost.toFixed(2)}
+                    {financials.totalCost.toFixed(2)} <span className="text-[10px] text-purple-500/70 font-normal">{currencySymbol}</span>
                   </span>
                 </div>
               </div>
@@ -407,10 +604,10 @@ export default function BatchDetails() {
                 const orderTotal = (order.items || []).reduce((acc, item) => acc + (item.price * item.quantity), 0);
                 
                 return (
-                  <Link 
+                  <button 
                     key={order.id}
-                    to={`/order/${order.id}`}
-                    className="block bg-white p-3 rounded-xl border border-gray-100 shadow-sm active:scale-[0.98] transition-all dark:bg-gray-800 dark:border-gray-700 dark:shadow-none"
+                    onClick={() => handleBackOrCancel(() => navigate(`/order/${order.id}`))}
+                    className="w-full text-right block bg-white p-3 rounded-xl border border-gray-100 shadow-sm active:scale-[0.98] transition-all dark:bg-gray-800 dark:border-gray-700 dark:shadow-none"
                   >
                     <div className="flex justify-between items-start mb-2">
                        <span className="text-[10px] sm:text-xs font-mono font-bold text-gray-500 bg-gray-100 px-2 py-0.5 rounded border border-gray-200 dark:bg-gray-800 dark:text-gray-300 dark:border-gray-700">
@@ -418,8 +615,7 @@ export default function BatchDetails() {
                        </span>
                        <span className="text-xs font-bold text-gray-800 dark:text-gray-200">
                          <span className="text-[10px] font-normal text-gray-500 dark:text-gray-400 ml-1">قيمة المنتجات:</span>
-                         <span className="text-[10px] ml-0.5 text-gray-500 dark:text-gray-400">₪</span>
-                         {orderTotal.toFixed(2)}
+                         {orderTotal.toFixed(2)} <span className="text-[10px] text-gray-500 dark:text-gray-400 font-normal">{currencySymbol}</span>
                        </span>
                     </div>
                     <div className="flex items-center gap-2 text-sm font-bold text-gray-900 dark:text-white">
@@ -430,7 +626,7 @@ export default function BatchDetails() {
                       <Package className="w-3 h-3" />
                       {(order.items || []).reduce((acc, item) => acc + item.quantity, 0)} منتجات
                     </div>
-                  </Link>
+                  </button>
                 )
               })
             )}
@@ -465,20 +661,31 @@ export default function BatchDetails() {
               <ShoppingCart className="w-5 h-5" /> طلبية جديدة بالكامل
             </button>
             
-            <div className="relative mb-3 flex-shrink-0">
-              <Search className="w-4 h-4 absolute right-3 top-1/2 -translate-y-1/2 text-gray-400" />
-              <input
-                type="text"
-                placeholder="بحث عن طلبية لإضافتها للسلة..."
-                value={linkOrderSearchQuery}
-                onChange={(e) => setLinkOrderSearchQuery(e.target.value)}
-                className="w-full bg-gray-50 border border-gray-200 rounded-xl pr-9 pl-4 py-2.5 outline-none focus:ring-2 focus:ring-purple-500 dark:bg-gray-900 dark:border-gray-700 dark:text-white"
-              />
+            <div className="mb-3 flex-shrink-0">
+              <div className="relative mb-2">
+                <Search className="w-4 h-4 absolute right-3 top-1/2 -translate-y-1/2 text-gray-400" />
+                <input
+                  type="text"
+                  placeholder="بحث عن طلبية لإضافتها للسلة..."
+                  value={linkOrderSearchQuery}
+                  onChange={(e) => setLinkOrderSearchQuery(e.target.value)}
+                  className="w-full bg-gray-50 border border-gray-200 rounded-xl pr-9 pl-4 py-2.5 outline-none focus:ring-2 focus:ring-purple-500 dark:bg-gray-900 dark:border-gray-700 dark:text-white"
+                />
+              </div>
+              <label className="flex items-center gap-2 text-xs font-medium text-gray-600 cursor-pointer dark:text-gray-300">
+                <input 
+                  type="checkbox" 
+                  checked={showDeliveredOrders}
+                  onChange={(e) => setShowDeliveredOrders(e.target.checked)}
+                  className="w-3.5 h-3.5 text-purple-600 rounded bg-white border-gray-300 focus:ring-purple-500 cursor-pointer dark:bg-gray-800 dark:border-gray-600"
+                />
+                عرض الطلبيات المستلمة
+              </label>
             </div>
 
             <div className="overflow-y-auto overflow-x-hidden flex-1 space-y-2 pb-safe pr-1 custom-scrollbar">
               {(() => {
-                const availableOrders = allOrders.filter(o => !o.batchId && (o.orderNumber?.includes(linkOrderSearchQuery) || customers.find(c => c.id === o.customerId)?.name.toLowerCase().includes(linkOrderSearchQuery.toLowerCase())));
+                const availableOrders = allOrders.filter(o => !o.batchId && (showDeliveredOrders ? true : o.status !== 'DELIVERED') && (o.orderNumber?.includes(linkOrderSearchQuery) || customers.find(c => c.id === o.customerId)?.name.toLowerCase().includes(linkOrderSearchQuery.toLowerCase())));
                 if (availableOrders.length === 0) {
                   return (
                     <div className="text-center py-6 text-gray-500 text-sm">
@@ -491,19 +698,26 @@ export default function BatchDetails() {
                   return (
                     <div key={order.id} className="border border-gray-100 rounded-xl p-3 flex justify-between items-center dark:border-gray-700">
                       <div>
-                        <div className="font-bold text-sm text-gray-900 dark:text-white">
-                          <span className="font-mono bg-gray-100 px-1.5 py-0.5 rounded border border-gray-200 text-[10px] ml-2 text-gray-700 dark:bg-gray-800 dark:text-gray-300 dark:border-gray-700">
+                        <div className="font-bold text-sm text-gray-900 flex items-center gap-2 dark:text-white">
+                          <span className="font-mono bg-gray-100 px-1.5 py-0.5 rounded border border-gray-200 text-[10px] text-gray-700 dark:bg-gray-800 dark:text-gray-300 dark:border-gray-700">
                             #{order.orderNumber}
                           </span>
-                          {customer?.name || "عميل غير معروف"}
+                          <div className="flex bg-white border border-gray-100 rounded-md overflow-hidden dark:bg-gray-800 dark:border-gray-700">
+                            <span className="px-1.5 py-0.5 text-[10px] text-gray-500 border-l border-gray-100 dark:border-gray-700">
+                              {(order.items || []).length} منتجات
+                            </span>
+                            <span className="px-1.5 py-0.5 text-[10px] text-gray-500">
+                              {(order.items || []).reduce((acc, item) => acc + item.quantity, 0)} قطع
+                            </span>
+                          </div>
                         </div>
-                        <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                          {(order.items || []).reduce((acc, item) => acc + item.quantity, 0)} منتجات
+                        <div className="text-xs font-medium text-gray-600 dark:text-gray-300 mt-1">
+                          {customer?.name || "عميل غير معروف"}
                         </div>
                       </div>
                       <button
                         onClick={() => {
-                          updateOrder(order.id, { batchId: id });
+                          updateOrder(order.id, { batchId: id, trackingNumber: batch?.trackingNumber || order.trackingNumber, status: batch?.status || order.status });
                           setShowLinkModal(false);
                         }}
                         className="bg-purple-50 text-purple-600 text-xs font-bold px-3 py-1.5 rounded-lg active:scale-95 dark:bg-purple-900/30 dark:text-purple-400"
@@ -689,15 +903,17 @@ export default function BatchDetails() {
               هل أنت متأكد من رغبتك في حذف هذه السلة؟ لا يمكن التراجع عن هذا الإجراء.
             </p>
 
-            <label className="flex items-center gap-3 p-3 mb-6 bg-gray-50 border border-gray-200 rounded-xl cursor-pointer hover:bg-gray-100 transition-colors dark:bg-gray-900 dark:border-gray-700 dark:hover:bg-gray-800">
-              <input
-                type="checkbox"
-                checked={deleteAssociatedOrders}
-                onChange={(e) => setDeleteAssociatedOrders(e.target.checked)}
-                className="w-5 h-5 rounded border-gray-300 text-red-600 focus:ring-red-500 bg-white cursor-pointer"
-              />
-              <span className="text-sm font-bold text-gray-700 dark:text-gray-200">حذف الطلبيات المرتبطة أيضاً</span>
-            </label>
+            {orders.length > 0 && (
+              <label className="flex items-center gap-3 p-3 mb-6 bg-gray-50 border border-gray-200 rounded-xl cursor-pointer hover:bg-gray-100 transition-colors dark:bg-gray-900 dark:border-gray-700 dark:hover:bg-gray-800">
+                <input
+                  type="checkbox"
+                  checked={deleteAssociatedOrders}
+                  onChange={(e) => setDeleteAssociatedOrders(e.target.checked)}
+                  className="w-5 h-5 rounded border-gray-300 text-red-600 focus:ring-red-500 bg-white cursor-pointer"
+                />
+                <span className="text-sm font-bold text-gray-700 dark:text-gray-200">حذف الطلبيات المرتبطة أيضاً</span>
+              </label>
+            )}
 
             <div className="flex gap-3">
               <button
@@ -709,6 +925,53 @@ export default function BatchDetails() {
               <button
                 onClick={() => setShowDeleteModal(false)}
                 className="flex-none px-6 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-xl font-bold text-sm transition-colors dark:bg-gray-700 dark:text-gray-200 dark:hover:bg-gray-600"
+              >
+                إلغاء
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+      {showUnsavedModal && (
+        <div className="fixed inset-0 z-50 bg-black/40 flex items-center justify-center p-4 backdrop-blur-sm transition-opacity">
+          <div className="bg-white w-full max-w-sm rounded-2xl p-5 shadow-xl dark:bg-gray-800 dark:shadow-none">
+            <h3 className="font-bold text-lg text-gray-900 mb-2 dark:text-white">تعديلات غير محفوظة</h3>
+            <p className="text-sm text-gray-600 mb-6 leading-relaxed dark:text-gray-300">
+              هناك تعديلات قمت بها ولم تحفظها، هل تريد حفظها قبل الخروج؟
+            </p>
+
+            <div className="flex gap-2">
+              <button
+                onClick={() => {
+                  handleSaveDocs();
+                  setShowUnsavedModal(false);
+                  if (blocker.state === "blocked") {
+                     blocker.proceed?.();
+                  } else if (pendingAction) {
+                     pendingAction();
+                  }
+                }}
+                className="flex-[2] bg-purple-600 hover:bg-purple-700 text-white py-2.5 rounded-xl font-bold text-sm shadow-md transition-colors dark:shadow-none"
+              >
+                حفظ
+              </button>
+              <button
+                onClick={() => {
+                  setShowUnsavedModal(false);
+                  setIsEditingDocs(false);
+                  if (blocker.state === "blocked") blocker.proceed?.();
+                  if (pendingAction) pendingAction();
+                }}
+                className="flex-1 bg-red-100/80 hover:bg-red-200 text-red-600 py-2.5 rounded-xl font-bold text-sm transition-colors dark:bg-red-900/30 dark:text-red-400 dark:hover:bg-red-900/50"
+              >
+                تجاهل
+              </button>
+              <button
+                onClick={() => {
+                  setShowUnsavedModal(false);
+                  if (blocker.state === "blocked") blocker.reset?.();
+                }}
+                className="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-700 py-2.5 rounded-xl font-bold text-sm transition-colors dark:bg-gray-700 dark:text-gray-200 dark:hover:bg-gray-600"
               >
                 إلغاء
               </button>

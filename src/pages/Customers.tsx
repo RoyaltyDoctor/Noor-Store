@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useEffect } from "react";
-import { useStore, useCustomersFilterStore, SortOptionCustomers } from "../store";
+import { useStore, useSettingsStore, useCustomersFilterStore, SortOptionCustomers } from "../store";
 import { Link, useLocation } from "react-router-dom";
 import {
   Users,
@@ -34,6 +34,7 @@ const SORT_LABELS: Record<SortOptionCustomers, string> = {
 };
 
 export default function Customers() {
+  const currencySymbol = useSettingsStore(state => state.currencySymbol);
   const customers = useStore(state => state.customers);
   const orders = useStore(state => state.orders);
   const addCustomer = useStore(state => state.addCustomer);
@@ -648,10 +649,12 @@ export default function Customers() {
                 customerOrders.map((order) => {
                   const serviceFee = order.serviceFee || 0;
                   const shippingFee = order.shippingFee || 0;
+                  const additionalFees = order.additionalFees || 0;
+                  const discount = order.discount || 0;
                   const total =
                     (order.items || []).reduce((s, i) => s + i.price * i.quantity, 0) +
                     serviceFee +
-                    shippingFee;
+                    shippingFee + additionalFees - discount;
                   return (
                     <Link
                       key={order.id}
@@ -672,7 +675,7 @@ export default function Customers() {
                         </span>
                       </div>
                       <div className="text-sm font-bold text-gray-900 mb-2 dark:text-white">
-                        {total} ر.س{" "}
+                        {total} {currencySymbol}{" "}
                         <span className="text-xs text-gray-400 font-normal">
                           ({(order.items || []).reduce((a, i) => a + i.quantity, 0)}{" "}
                           قطع)

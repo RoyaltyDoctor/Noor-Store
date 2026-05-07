@@ -48,8 +48,13 @@ export interface Batch {
   status: OrderStatus;
   couponEnabled: boolean;
   couponCode?: string;
+  couponType?: "amount" | "percentage";
+  couponValue?: number;
   trackingNumber?: string;
+  batchUrl?: string;
   bankFees: number;
+  shippingFees?: number;
+  transportFees?: number;
   dates: {
     created: number;
     updated: number;
@@ -67,6 +72,8 @@ export interface Order {
   serviceFee: number;
   shippingFee: number;
   deposit: number;
+  discount?: number;
+  additionalFees?: number;
   trackingNumber?: string;
   dates: {
     created: number;

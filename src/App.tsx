@@ -2,10 +2,18 @@
  * @license
  * SPDX-License-Identifier: Apache-2.0
  */
-import { BrowserRouter } from "react-router-dom";
+import { createBrowserRouter, RouterProvider, Outlet } from "react-router-dom";
 import Layout from "./components/Layout";
 import { useEffect } from "react";
 import { useThemeStore } from "./themeStore";
+
+// Use a data router to support useBlocker
+const router = createBrowserRouter([
+  {
+    path: "*",
+    element: <Layout />
+  }
+]);
 
 export default function App() {
   const { theme } = useThemeStore();
@@ -35,9 +43,5 @@ export default function App() {
     }
   }, [theme]);
 
-  return (
-    <BrowserRouter>
-      <Layout />
-    </BrowserRouter>
-  );
+  return <RouterProvider router={router} />;
 }
