@@ -613,7 +613,7 @@ export default function OrderDetails() {
                     <div className="flex-1 pt-1 min-w-0">
                       <div className="flex justify-between items-start w-full mb-1">
                         <h4 className="font-bold text-gray-900 text-sm leading-snug truncate pr-2 dark:text-white">
-                          {item.name}
+                          {item.name} {item.quantity > 1 && <span className="font-normal text-xs text-gray-500 dark:text-gray-400">({item.quantity})</span>}
                         </h4>
                         {/* Actions Area inline - Subtle style */}
                         {editingItemId !== item.id && (
@@ -636,29 +636,29 @@ export default function OrderDetails() {
                         )}
                       </div>
 
-                      <div className="mt-2 flex flex-wrap gap-1.5 text-[10px] text-gray-500 dark:text-gray-400">
+                      <div className="mt-2 flex flex-wrap items-center gap-1.5 text-[10px] text-gray-500 dark:text-gray-400 w-full">
                         {item.size && (
-                          <span className="bg-gray-50 border border-gray-100 px-1.5 py-0.5 rounded shadow-sm dark:bg-gray-900 dark:border-gray-700 dark:shadow-none">
+                          <span className="bg-gray-50 border border-gray-100 px-1.5 py-0.5 rounded shadow-sm dark:bg-gray-900 dark:border-gray-700 dark:shadow-none flex items-center whitespace-nowrap">
                             م: {item.size}
                           </span>
                         )}
                         {item.color && (
-                          <span className="bg-gray-50 border border-gray-100 px-1.5 py-0.5 rounded shadow-sm dark:bg-gray-900 dark:border-gray-700 dark:shadow-none">
+                          <span className="bg-gray-50 border border-gray-100 px-1.5 py-0.5 rounded shadow-sm dark:bg-gray-900 dark:border-gray-700 dark:shadow-none flex items-center whitespace-nowrap">
                             ل: {item.color}
                           </span>
                         )}
                         {item.sku && (
                           <div
-                            className="flex items-center bg-gray-50 border border-gray-100 rounded shadow-sm overflow-hidden dark:bg-gray-900 dark:border-gray-700 dark:shadow-none"
+                            className="flex items-center bg-gray-50 border border-gray-100 rounded shadow-sm overflow-hidden dark:bg-gray-900 dark:border-gray-700 dark:shadow-none max-w-[120px]"
                             dir="ltr"
                           >
                             <button
                               onClick={() => handleCopySku(item.sku!, item.id)}
                               className={clsx(
-                                "px-1.5 py-0.5 transition-colors border-r border-gray-100 flex items-center justify-center h-full",
+                                "px-1.5 py-0.5 transition-colors border-r border-gray-100 dark:border-gray-700 flex items-center justify-center h-full",
                                 copiedSkuId === item.id
-                                  ? "bg-green-100 text-green-700"
-                                  : "text-gray-400 hover:bg-gray-200 hover:text-gray-700",
+                                  ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400"
+                                  : "text-gray-400 hover:bg-gray-200 hover:text-gray-700 dark:hover:bg-gray-800",
                               )}
                               title="نسخ الكود"
                             >
@@ -668,9 +668,38 @@ export default function OrderDetails() {
                                 <Copy className="w-3 h-3" />
                               )}
                             </button>
-                            <span className="px-1.5 py-0.5 font-mono max-w-[80px] truncate">
+                            <span className="px-1.5 py-0.5 font-mono max-w-[80px] truncate self-center mt-px">
                               {item.sku}
                             </span>
+                          </div>
+                        )}
+                        {item.url && (
+                          <div className="flex items-center rtl:flex-row-reverse border border-blue-100 rounded bg-blue-50/50 shadow-sm overflow-hidden text-right dark:border-blue-900/50 dark:bg-blue-900/20 dark:shadow-none flex-shrink-0">
+                            <button
+                              onClick={() => handleCopyUrl(item.url!, item.id)}
+                              className={clsx(
+                                "px-1.5 py-0.5 transition-colors border-r border-blue-100 dark:border-blue-900/50 flex items-center justify-center h-full",
+                                copiedUrlId === item.id
+                                  ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400"
+                                  : "text-blue-500 hover:bg-blue-100 hover:text-blue-700 dark:text-blue-400 dark:hover:bg-blue-900/50 dark:hover:text-blue-300"
+                              )}
+                              title="نسخ الرابط"
+                            >
+                              {copiedUrlId === item.id ? (
+                                <Check className="w-3 h-3" />
+                              ) : (
+                                <Copy className="w-3 h-3" />
+                              )}
+                            </button>
+                            <a
+                              href={item.url}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="text-blue-600 hover:bg-blue-100/50 px-1.5 flex items-center gap-1 font-bold h-full dark:text-blue-400 dark:hover:bg-blue-900/30"
+                              title="فتح الرابط"
+                            >
+                              الرابط <ExternalLink className="w-2.5 h-2.5" />
+                            </a>
                           </div>
                         )}
                       </div>
@@ -687,34 +716,6 @@ export default function OrderDetails() {
                               الإجمالي: {item.price * item.quantity} {currencySymbol}
                             </div>
                           )}
-                          {item.url && (
-                          <div className="flex items-center rtl:flex-row-reverse border border-blue-100 rounded bg-blue-50/50 shadow-sm overflow-hidden text-right h-6 dark:shadow-none">
-                            <button
-                              onClick={() => handleCopyUrl(item.url!, item.id)}
-                              className={clsx(
-                                "px-2 py-1 transition-colors border-r border-blue-100 flex items-center justify-center h-full",
-                                copiedUrlId === item.id
-                                  ? "bg-green-100 text-green-700"
-                                  : "text-blue-400 hover:bg-blue-100 hover:text-blue-600",
-                              )}
-                              title="نسخ الرابط"
-                            >
-                              {copiedUrlId === item.id ? (
-                                <Check className="w-3 h-3" />
-                              ) : (
-                                <Copy className="w-3 h-3" />
-                              )}
-                            </button>
-                            <a
-                              href={item.url}
-                              target="_blank"
-                              rel="noreferrer"
-                              className="text-blue-600 hover:bg-blue-100/50 px-2 flex items-center gap-1 text-[10px] font-bold h-full dark:text-blue-400"
-                            >
-                              الرابط <ExternalLink className="w-2.5 h-2.5" />
-                            </a>
-                          </div>
-                        )}
                         </div>
                       </div>
                     </div>
@@ -1196,6 +1197,7 @@ export default function OrderDetails() {
                 const bId = addBatch();
                 updateOrder(order.id, { batchId: bId });
                 setShowSelectBatchModal(false);
+                navigate(`/batch/${bId}`);
               }}
               className="w-full mb-3 bg-purple-50 hover:bg-purple-100 text-purple-700 rounded-xl px-4 py-3 font-bold flex items-center justify-center gap-2 transition-colors dark:bg-purple-900/30 dark:text-purple-400 dark:hover:bg-purple-900/50"
             >

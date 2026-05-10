@@ -1,7 +1,7 @@
 import React, { useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useStore, useSettingsStore, useBatchesFilterStore } from "../store";
-import { Plus, ShoppingCart, Search, Filter, SortDesc, LayoutList, CheckCheck, Check } from "lucide-react";
+import { Plus, ShoppingCart, Search, Filter, SortDesc, LayoutList, CheckCheck, Check, Link2, Copy, ExternalLink } from "lucide-react";
 import { format } from "date-fns";
 import { STATUS_LABELS, STATUS_COLORS, OrderStatus } from "../types";
 import { ar } from "date-fns/locale";
@@ -29,6 +29,8 @@ export default function Batches() {
   const [showSortDropdown, setShowSortDropdown] = useState(false);
   const dropdownsContainerRef = React.useRef<HTMLDivElement>(null);
   const [selectedBatchOrders, setSelectedBatchOrders] = useState<any | null>(null);
+  const [selectedBatchCustomers, setSelectedBatchCustomers] = useState<any | null>(null);
+  const [copiedBatchLinkId, setCopiedBatchLinkId] = useState<string | null>(null);
 
   React.useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -385,10 +387,10 @@ export default function Batches() {
           </div>
         ) : (
           batchesWithStats.map((batch) => (
-            <Link
+            <div
               key={batch.id}
-              to={`/batch/${batch.id}`}
-              className="block bg-white p-4 rounded-2xl border border-gray-100 shadow-sm active:scale-[0.99] transition-transform dark:bg-gray-800 dark:border-gray-700 dark:shadow-none"
+              onClick={() => navigate(`/batch/${batch.id}`)}
+              className="block cursor-pointer bg-white p-4 rounded-2xl border border-gray-100 shadow-sm active:scale-[0.99] transition-transform dark:bg-gray-800 dark:border-gray-700 dark:shadow-none"
             >
               <div className="flex justify-between items-start mb-3">
                 <div className="flex items-center gap-3">
@@ -419,6 +421,7 @@ export default function Batches() {
                   type="button"
                   onClick={(e) => {
                     e.preventDefault();
+                    e.stopPropagation();
                     setSelectedBatchOrders(batch);
                   }}
                   className="text-center bg-gray-50 hover:bg-gray-100 p-2 rounded-lg cursor-pointer transition-colors dark:bg-gray-900 border border-transparent dark:hover:bg-gray-800 dark:border-gray-700"
@@ -426,10 +429,18 @@ export default function Batches() {
                   <span className="block text-[10px] text-gray-500 dark:text-gray-400 mb-1">الطلبات</span>
                   <span className="font-bold text-gray-800 text-sm dark:text-gray-200">{batch.ordersCount}</span>
                 </button>
-                <div className="text-center bg-gray-50 p-2 rounded-lg dark:bg-gray-900">
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    setSelectedBatchCustomers(batch);
+                  }}
+                  className="text-center bg-gray-50 hover:bg-gray-100 p-2 rounded-lg cursor-pointer transition-colors dark:bg-gray-900 border border-transparent dark:hover:bg-gray-800 dark:border-gray-700"
+                >
                   <span className="block text-[10px] text-gray-500 dark:text-gray-400 mb-1">العملاء</span>
                   <span className="font-bold text-gray-800 text-sm dark:text-gray-200">{batch.totalCustomers}</span>
-                </div>
+                </button>
                 <div className="text-center bg-gray-50 p-2 rounded-lg dark:bg-gray-900">
                   <span className="block text-[10px] text-gray-500 dark:text-gray-400 mb-1">التكلفة التقريبية</span>
                   <span className="font-bold text-gray-800 text-sm dark:text-gray-200">
@@ -442,8 +453,44 @@ export default function Batches() {
                 <span className="text-[10px] text-gray-400">
                   {batch.dates?.created ? format(batch.dates.created, "yyyy/MM/dd") : "تاريخ غير متوفر"}
                 </span>
+                {batch.batchUrl && (
+                  <div className="flex items-center rtl:flex-row-reverse border border-blue-100 rounded bg-blue-50/50 shadow-sm overflow-hidden text-right h-5 dark:border-blue-900/50 dark:bg-blue-900/20 dark:shadow-none" onClick={(e) => { e.preventDefault(); e.stopPropagation(); }}>
+                    <button
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        navigator.clipboard.writeText(batch.batchUrl!);
+                        setCopiedBatchLinkId(batch.id);
+                        setTimeout(() => setCopiedBatchLinkId(null), 1500);
+                      }}
+                      className={clsx(
+                        "px-1.5 py-0.5 transition-colors border-r border-blue-100 dark:border-blue-900/50 flex items-center justify-center h-full",
+                        copiedBatchLinkId === batch.id
+                          ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400"
+                          : "text-blue-500 hover:bg-blue-100 hover:text-blue-700 dark:text-blue-400 dark:hover:bg-blue-900/50 dark:hover:text-blue-300"
+                      )}
+                      title="نسخ الرابط"
+                    >
+                      {copiedBatchLinkId === batch.id ? (
+                        <Check className="w-2.5 h-2.5" />
+                      ) : (
+                        <Copy className="w-2.5 h-2.5" />
+                      )}
+                    </button>
+                    <a
+                      href={batch.batchUrl.startsWith('http') ? batch.batchUrl : `https://${batch.batchUrl}`}
+                      target="_blank"
+                      rel="noreferrer"
+                      onClick={(e) => e.stopPropagation()}
+                      className="text-blue-600 hover:bg-blue-100/50 px-1.5 flex items-center gap-1 text-[9px] font-bold h-full dark:text-blue-400 dark:hover:bg-blue-900/30"
+                      title="فتح الرابط"
+                    >
+                      رابط السلة <ExternalLink className="w-2.5 h-2.5" />
+                    </a>
+                  </div>
+                )}
               </div>
-            </Link>
+            </div>
           ))
         )}
       </div>
@@ -522,6 +569,80 @@ export default function Batches() {
                         </div>
                       ) : null}
                     </Link>
+                  );
+                });
+              })()}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {selectedBatchCustomers && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl p-5 max-w-sm w-full dark:bg-gray-800 shadow-xl" dir="rtl">
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="font-bold text-lg text-gray-900 dark:text-white">عملاء السلة ({selectedBatchCustomers.batchNumber})</h3>
+              <button
+                onClick={() => setSelectedBatchCustomers(null)}
+                className="w-8 h-8 flex items-center justify-center bg-gray-100 rounded-full text-gray-600 hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600"
+              >
+                ✕
+              </button>
+            </div>
+            <div className="max-h-[60vh] overflow-y-auto space-y-2 pr-1 custom-scrollbar">
+              {(() => {
+                const batchOrders = orders.filter(o => o.batchId === selectedBatchCustomers.id);
+                if (batchOrders.length === 0) {
+                  return (
+                    <div className="text-center py-6 text-gray-500 text-sm">
+                      لا يوجد عملاء مرتبطين بهذه السلة.
+                    </div>
+                  );
+                }
+                
+                // Group by customer
+                let grouped: Record<string, { customer: any, orders: typeof batchOrders }> = {};
+                batchOrders.forEach(o => {
+                  const custKey = o.customerId || 'unknown';
+                  if (!grouped[custKey]) {
+                    grouped[custKey] = { customer: customers.find(c => c.id === o.customerId), orders: [] };
+                  }
+                  grouped[custKey].orders.push(o);
+                });
+
+                return Object.values(grouped).map(group => {
+                  return (
+                    <div key={group.customer?.id || 'unknown'} className="block bg-gray-50 border border-gray-100 p-3 rounded-xl dark:bg-gray-900/50 dark:border-gray-700">
+                      <div className="font-bold text-sm text-gray-900 dark:text-white mb-2">
+                         {group.customer?.name || "عميل غير معروف"}
+                      </div>
+                      <div className="space-y-1">
+                        {group.orders.map(order => {
+                          const orderTotalItems = (order.items || []).reduce((acc, item) => acc + (item.price * item.quantity), 0);
+                          const orderTotal = orderTotalItems + (order.shippingFee || 0) + (order.serviceFee || 0) + (order.additionalFees || 0) - (order.discount || 0);
+                          return (
+                            <Link key={order.id} to={`/order/${order.id}`} className="flex justify-between items-center bg-white p-2 rounded-lg border border-gray-100 active:scale-95 transition-transform dark:bg-gray-800 dark:border-gray-700">
+                              <div className="flex items-center gap-2">
+                                <span className="font-mono text-xs font-bold text-gray-500 bg-gray-50 px-2 py-0.5 rounded border border-gray-200 dark:bg-gray-900 dark:text-gray-400 dark:border-gray-600">
+                                  #{order.orderNumber}
+                                </span>
+                                <div className="flex bg-gray-50 border border-gray-100 rounded-md overflow-hidden dark:bg-gray-900 dark:border-gray-700">
+                                  <span className="px-1.5 py-0.5 text-[10px] text-gray-500 border-l border-gray-100 dark:border-gray-700 flex items-center gap-1">
+                                    {(order.items || []).length} منتجات
+                                  </span>
+                                  <span className="px-1.5 py-0.5 text-[10px] text-gray-500 flex items-center gap-1">
+                                    {(order.items || []).reduce((acc, item) => acc + item.quantity, 0)} قطع
+                                  </span>
+                                </div>
+                              </div>
+                              <span className="font-bold text-xs text-gray-900 dark:text-white">
+                                {orderTotal.toFixed(2)} <span className="text-[10px] text-gray-500 font-normal">{currencySymbol}</span>
+                              </span>
+                            </Link>
+                          );
+                        })}
+                      </div>
+                    </div>
                   );
                 });
               })()}

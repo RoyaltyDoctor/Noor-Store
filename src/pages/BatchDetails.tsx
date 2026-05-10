@@ -20,7 +20,8 @@ import {
   UserPlus,
   ChevronDown,
   ChevronUp,
-  Link2
+  Link2,
+  Copy
 } from "lucide-react";
 import { format } from "date-fns";
 import { ar } from "date-fns/locale";
@@ -28,6 +29,12 @@ import { ar } from "date-fns/locale";
 export default function BatchDetails() {
   const { id } = useParams();
   const navigate = useNavigate();
+  
+  React.useEffect(() => {
+    const container = document.getElementById("main-scroll-container");
+    if (container) container.scrollTo(0, 0);
+  }, [id]);
+
   const allBatches = useStore((state) => state.batches);
   const currencySymbol = useSettingsStore((state) => state.currencySymbol);
   const batch = allBatches.find((b) => b.id === id);
@@ -134,6 +141,7 @@ export default function BatchDetails() {
   };
 
   const [copiedUrl, setCopiedUrl] = useState(false);
+  const [copiedTracking, setCopiedTracking] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [deleteAssociatedOrders, setDeleteAssociatedOrders] = useState(false);
 
@@ -504,11 +512,25 @@ export default function BatchDetails() {
                     ) : 'غير مفعل'}
                   </span>
                 </div>
-                <div className="bg-gray-50 border border-gray-100 rounded-xl p-3 dark:bg-gray-900/50 dark:border-gray-700 flex justify-between flex-col">
-                   <span className="text-[10px] text-gray-500 block mb-1 dark:text-gray-400 flex items-center gap-1"><Hash className="w-3 h-3"/>رقم التتبع</span>
-                   <span className="text-sm font-bold text-gray-800 dark:text-gray-200 font-mono truncate" dir="ltr">
-                     {batch.trackingNumber || '--'}
-                   </span>
+                <div className="bg-gray-50 border border-gray-100 rounded-xl p-3 dark:bg-gray-900/50 dark:border-gray-700 flex justify-between">
+                   <div>
+                     <span className="text-[10px] text-gray-500 block mb-1 dark:text-gray-400 flex items-center gap-1"><Hash className="w-3 h-3"/>رقم التتبع</span>
+                     <span className="text-sm font-bold text-gray-800 dark:text-gray-200 font-mono truncate" dir="ltr">
+                       {batch.trackingNumber || '--'}
+                     </span>
+                   </div>
+                   {batch.trackingNumber && (
+                     <button
+                       onClick={() => {
+                         navigator.clipboard.writeText(batch.trackingNumber!);
+                         setCopiedTracking(true);
+                         setTimeout(() => setCopiedTracking(false), 1500);
+                       }}
+                       className="p-1.5 text-gray-400 hover:text-purple-600 bg-white rounded-lg border border-gray-200 shadow-sm dark:bg-gray-800 dark:border-gray-700 self-center"
+                     >
+                       {copiedTracking ? <CheckCircle2 className="w-4 h-4 text-green-500" /> : <Copy className="w-4 h-4" />}
+                     </button>
+                   )}
                 </div>
               </div>
               {batch.batchUrl && (
