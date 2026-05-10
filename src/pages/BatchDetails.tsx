@@ -75,10 +75,9 @@ export default function BatchDetails() {
 
   React.useEffect(() => {
     if (blocker.state === "blocked") {
-      setPendingAction(() => () => blocker.proceed?.());
       setShowUnsavedModal(true);
     }
-  }, [blocker]);
+  }, [blocker.state]);
 
   const handleBackOrCancel = (action: () => void) => {
     if (isEditingDocs && hasChanges) {
@@ -948,8 +947,9 @@ export default function BatchDetails() {
                   if (blocker.state === "blocked") {
                      blocker.proceed?.();
                   } else if (pendingAction) {
-                     pendingAction();
+                     setTimeout(() => pendingAction(), 0);
                   }
+                  setPendingAction(null);
                 }}
                 className="flex-[2] bg-purple-600 hover:bg-purple-700 text-white py-2.5 rounded-xl font-bold text-sm shadow-md transition-colors dark:shadow-none"
               >
@@ -959,8 +959,12 @@ export default function BatchDetails() {
                 onClick={() => {
                   setShowUnsavedModal(false);
                   setIsEditingDocs(false);
-                  if (blocker.state === "blocked") blocker.proceed?.();
-                  if (pendingAction) pendingAction();
+                  if (blocker.state === "blocked") {
+                    blocker.proceed?.();
+                  } else if (pendingAction) {
+                    setTimeout(() => pendingAction(), 0);
+                  }
+                  setPendingAction(null);
                 }}
                 className="flex-1 bg-red-100/80 hover:bg-red-200 text-red-600 py-2.5 rounded-xl font-bold text-sm transition-colors dark:bg-red-900/30 dark:text-red-400 dark:hover:bg-red-900/50"
               >
@@ -970,6 +974,7 @@ export default function BatchDetails() {
                 onClick={() => {
                   setShowUnsavedModal(false);
                   if (blocker.state === "blocked") blocker.reset?.();
+                  setPendingAction(null);
                 }}
                 className="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-700 py-2.5 rounded-xl font-bold text-sm transition-colors dark:bg-gray-700 dark:text-gray-200 dark:hover:bg-gray-600"
               >
